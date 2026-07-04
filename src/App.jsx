@@ -67,6 +67,20 @@ const SCRIPTURES = {
     explanation: "Jesus has absolute authority over the storms of life. Tapping into His calm allows us to experience quiet in the midst of turmoil. Pastor Poju often references this as the power of spoken word and inner rest.",
     sermon: "Peace in the Storm",
     timestamp: "18:40"
+  },
+  "proverbs_4_23": {
+    reference: "Proverbs 4:23",
+    text: "Above all else, guard your heart, for everything you do flows from it.",
+    explanation: "Our inner life—our thoughts, motives, and desires—shapes the entire course of our lives. Guarding our heart means standing watch over what we allow to take root in our minds. General faith-based teachings focus heavily on this foundational wisdom.",
+    sermon: "Guarding Your Heart (General Wisdom)",
+    timestamp: "15:30"
+  },
+  "romans_8_28": {
+    reference: "Romans 8:28",
+    text: "And we know that in all things God works for the good of those who love him, who have been called according to his purpose.",
+    explanation: "This scripture provides absolute assurance that no event, trial, or season is outside God's redeeming power. He orchestrates all details of our journey for our ultimate spiritual growth and good.",
+    sermon: "All Things Working Together",
+    timestamp: "28:45"
   }
 };
 
@@ -92,7 +106,7 @@ const INITIAL_MESSAGES = [
 
 export default function App() {
   const [activeView, setActiveView] = useState("auth"); // auth, home, new-chat, chat, devotion, scripture, profile
-  const [selectedPastor, setSelectedPastor] = useState(pastors[0]);
+  const [selectedPastor, setSelectedPastor] = useState(null);
   const [promptText, setPromptText] = useState("");
   const [suggestions, setSuggestions] = useState(SUGGESTION_POOL.slice(0, 3));
   const [chatMessages, setChatMessages] = useState(INITIAL_MESSAGES);
@@ -159,11 +173,17 @@ export default function App() {
     setTypingStateIndex(0);
 
     // Dynamic loading messages
-    const loadingStates = [
-      `Searching ${selectedPastor.name}'s teachings...`,
-      "Grounding answer in Scripture...",
-      "Preparing scriptural response..."
-    ];
+    const loadingStates = selectedPastor
+      ? [
+          `Searching ${selectedPastor.name}'s teachings...`,
+          "Grounding answer in Scripture...",
+          "Preparing scriptural response..."
+        ]
+      : [
+          "Searching general faith-based teachings...",
+          "Grounding in Scriptures...",
+          "Preparing general guidance..."
+        ];
 
     const stateTimer = setInterval(() => {
       setTypingStateIndex(prev => {
@@ -176,24 +196,36 @@ export default function App() {
       });
     }, 900);
 
-    // Simulate AI response generation (grounded in selected pastor)
+    // Simulate AI response generation
     setTimeout(() => {
       clearInterval(stateTimer);
       setIsTyping(false);
 
       let responseText = "";
       let scriptureChips = [];
+      let videoReference = null;
 
       // Grounding logic depending on selected pastor
-      if (selectedPastor.id === "poju") {
-        responseText = "God is not the author of fear, but of peace and a sound mind (2 Timothy 1:7). When you feel anxious, bring your worries to Him in prayer, and He will give you His peace that surpasses all understanding (Philippians 4:6-7). Trust that He has good plans for you, plans to prosper you and not to harm you, plans to give you hope and a future (Jeremiah 29:11). Faith is acting in confidence that God's plans are already established.";
-        scriptureChips = ["philippians_4_6_7", "2_timothy_1_7", "jeremiah_29_11"];
-      } else if (selectedPastor.id === "ita") {
-        responseText = "In the face of difficulty, we must anchor ourselves in divine wisdom. Luke 8:15 teaches us that a noble and good heart retains the Word and produces a harvest through perseverance. When your path seems uncertain, take shelter in His promises (Jeremiah 29:11). Ground your daily decisions in scripture, clear away the thorns of distractions, and let your soul rest in the knowledge that God's plans are designed to guide you securely.";
-        scriptureChips = ["jeremiah_29_11", "mark_4_39"];
+      if (selectedPastor) {
+        if (selectedPastor.id === "poju") {
+          responseText = "God is not the author of fear, but of peace and a sound mind (2 Timothy 1:7). When you feel anxious, bring your worries to Him in prayer, and He will give you His peace that surpasses all understanding (Philippians 4:6-7). Trust that He has good plans for you, plans to prosper you and not to harm you, plans to give you hope and a future (Jeremiah 29:11). Faith is acting in confidence that God's plans are already established.";
+          scriptureChips = ["philippians_4_6_7", "2_timothy_1_7", "jeremiah_29_11"];
+        } else if (selectedPastor.id === "ita") {
+          responseText = "In the face of difficulty, we must anchor ourselves in divine wisdom. Luke 8:15 teaches us that a noble and good heart retains the Word and produces a harvest through perseverance. When your path seems uncertain, take shelter in His promises (Jeremiah 29:11). Ground your daily decisions in scripture, clear away the thorns of distractions, and let your soul rest in the knowledge that God's plans are designed to guide you securely.";
+          scriptureChips = ["jeremiah_29_11", "mark_4_39"];
+        } else {
+          responseText = "Fear and adversity can feel overwhelming, but God's promise is clear: He has given us a spirit of power, love, and self-discipline, not of fear (2 Timothy 1:7). Let us remind ourselves of His power to calm every storm (Mark 4:39). Have courage! When you stand firm and declare His victory, He will strengthen you and give you a future filled with hope. Lean into prayer and let His strength flow through your family.";
+          scriptureChips = ["2_timothy_1_7", "mark_4_39", "jeremiah_29_11"];
+        }
       } else {
-        responseText = "Fear and adversity can feel overwhelming, but God's promise is clear: He has given us a spirit of power, love, and self-discipline, not of fear (2 Timothy 1:7). Let us remind ourselves of His power to calm every storm (Mark 4:39). Have courage! When you stand firm and declare His victory, He will strengthen you and give you a future filled with hope. Lean into prayer and let His strength flow through your family.";
-        scriptureChips = ["2_timothy_1_7", "mark_4_39", "jeremiah_29_11"];
+        // General teachings
+        responseText = "Based on general faith-based teachings, in times of difficulty or uncertainty, we are reminded to guard our hearts with diligence, for everything we do flows from it (Proverbs 4:23). When anxiety rises, we can rest in the promise that all things work together for the good of those who love God and are called according to His purpose (Romans 8:28). True strength is found in quietness and confidence, allowing His peace to anchor your soul in every storm.";
+        scriptureChips = ["proverbs_4_23", "romans_8_28"];
+        videoReference = {
+          title: "Finding Peace in Turbulent Times (General Teaching)",
+          url: "https://www.youtube.com/watch?v=1oW_W1W86Qk",
+          duration: "12:40"
+        };
       }
 
       const assistantMessage = {
@@ -201,7 +233,8 @@ export default function App() {
         sender: "assistant",
         text: responseText,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        scriptures: scriptureChips
+        scriptures: scriptureChips,
+        video: videoReference
       };
 
       setChatMessages(prev => [...prev, assistantMessage]);
@@ -394,10 +427,10 @@ export default function App() {
               </div>
 
               {/* Pastor Carousel */}
-              <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', marginBottom: 12 }}>
-                <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600 }}>Choose your pastor</h3>
-                <span onClick={() => setActiveView("new-chat")} style={{ fontSize: 13, color: 'var(--color-text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
-                  See all <ChevronLeft size={14} style={{ transform: 'rotate(180deg)' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 12 }}>
+                <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600 }}>Select Teacher</h3>
+                <span onClick={() => setActiveView("new-chat")} style={{ fontSize: 13, color: 'var(--color-accent-taupe-dark)', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 2 }}>
+                  Compare teachers &gt;
                 </span>
               </div>
 
@@ -405,25 +438,25 @@ export default function App() {
                 {pastors.map(pastor => (
                   <div 
                     key={pastor.id} 
-                    className={`pastor-card ${selectedPastor.id === pastor.id ? 'pastor-card-selected' : ''}`}
+                    className={`pastor-card ${selectedPastor?.id === pastor.id ? 'pastor-card-selected' : ''}`}
                     onClick={() => {
-                      setSelectedPastor(pastor);
-                      setActiveView("new-chat");
+                      const next = selectedPastor?.id === pastor.id ? null : pastor;
+                      setSelectedPastor(next);
+                      if (next) {
+                        setActiveView("new-chat");
+                      }
                     }}
+                    style={{ paddingBottom: 16 }}
                   >
                     <div className="pastor-avatar-wrapper">
                       <img src={pastor.image} alt={pastor.name} className="pastor-avatar" />
-                      {selectedPastor.id === pastor.id && (
+                      {selectedPastor?.id === pastor.id && (
                         <div className="pastor-badge">
                           <Check size={10} strokeWidth={3} />
                         </div>
                       )}
                     </div>
                     <div className="pastor-name">{pastor.name}</div>
-                    <div className="pastor-specialty">{pastor.specialty}</div>
-                    <button className="pastor-select-btn">
-                      {selectedPastor.id === pastor.id ? "Selected" : "Select"}
-                    </button>
                   </div>
                 ))}
               </div>
@@ -478,10 +511,10 @@ export default function App() {
               </div>
 
               {/* Choose Pastor section */}
-              <div style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>Choose your pastor</span>
-                <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
-                  Compare pastors <ChevronLeft size={12} style={{ transform: 'rotate(180deg)' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>Select Teacher</span>
+                <span style={{ fontSize: 13, color: 'var(--color-accent-taupe-dark)', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 2 }}>
+                  Compare teachers &gt;
                 </span>
               </div>
 
@@ -489,22 +522,19 @@ export default function App() {
                 {pastors.map(pastor => (
                   <div 
                     key={pastor.id} 
-                    className={`pastor-card ${selectedPastor.id === pastor.id ? 'pastor-card-selected' : ''}`}
-                    onClick={() => setSelectedPastor(pastor)}
+                    className={`pastor-card ${selectedPastor?.id === pastor.id ? 'pastor-card-selected' : ''}`}
+                    onClick={() => setSelectedPastor(selectedPastor?.id === pastor.id ? null : pastor)}
+                    style={{ paddingBottom: 16 }}
                   >
                     <div className="pastor-avatar-wrapper">
                       <img src={pastor.image} alt={pastor.name} className="pastor-avatar" />
-                      {selectedPastor.id === pastor.id && (
+                      {selectedPastor?.id === pastor.id && (
                         <div className="pastor-badge">
                           <Check size={10} strokeWidth={3} />
                         </div>
                       )}
                     </div>
                     <div className="pastor-name">{pastor.name}</div>
-                    <div className="pastor-specialty">{pastor.specialty}</div>
-                    <button className="pastor-select-btn">
-                      {selectedPastor.id === pastor.id ? "Selected" : "Select"}
-                    </button>
                   </div>
                 ))}
               </div>
@@ -545,29 +575,31 @@ export default function App() {
               </div>
 
               {/* CTA Action Bar */}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12 }}>
-                <button className="composer-btn" style={{ width: 50, height: 50, flexShrink: 0 }}>
-                  <ImageIcon size={18} />
-                </button>
-                <button 
-                  className="composer-input-wrapper" 
-                  style={{ 
-                    height: 50, 
-                    backgroundColor: 'var(--color-bg-warm)', 
-                    justifyContent: 'center', 
-                    cursor: 'pointer',
-                    border: 'none',
-                    fontWeight: 600,
-                    color: 'var(--color-accent-taupe-dark)'
-                  }}
-                  onClick={() => handleSendPrompt()}
-                >
-                  Ask {selectedPastor.name}
-                  <div className="composer-send-btn" style={{ width: 34, height: 34, marginLeft: 16 }}>
-                    <Send size={13} />
-                  </div>
-                </button>
-              </div>
+              {selectedPastor && (
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12 }}>
+                  <button className="composer-btn" style={{ width: 50, height: 50, flexShrink: 0 }}>
+                    <ImageIcon size={18} />
+                  </button>
+                  <button 
+                    className="composer-input-wrapper" 
+                    style={{ 
+                      height: 50, 
+                      backgroundColor: 'var(--color-bg-warm)', 
+                      justifyContent: 'center', 
+                      cursor: 'pointer',
+                      border: 'none',
+                      fontWeight: 600,
+                      color: 'var(--color-accent-taupe-dark)'
+                    }}
+                    onClick={() => handleSendPrompt()}
+                  >
+                    Ask Teacher {selectedPastor.name.replace("Pastor ", "")}
+                    <div className="composer-send-btn" style={{ width: 34, height: 34, marginLeft: 16 }}>
+                      <Send size={13} />
+                    </div>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -580,8 +612,32 @@ export default function App() {
                   <ChevronLeft size={20} />
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <img src={selectedPastor.image} alt={selectedPastor.name} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
-                  <span className="serif-display" style={{ fontSize: 16, fontWeight: 600 }}>{selectedPastor.name}</span>
+                  {selectedPastor ? (
+                    <>
+                      <img src={selectedPastor.image} alt={selectedPastor.name} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
+                      <span className="serif-display" style={{ fontSize: 16, fontWeight: 600 }}>{selectedPastor.name}</span>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ 
+                        width: 30, 
+                        height: 30, 
+                        borderRadius: '50%', 
+                        backgroundColor: 'var(--color-accent-taupe)', 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        color: 'white',
+                        flexShrink: 0
+                      }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 2V22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                          <path d="M5 9H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                      <span className="serif-display" style={{ fontSize: 16, fontWeight: 600 }}>General Guidance</span>
+                    </>
+                  )}
                   <ChevronDown size={14} style={{ color: 'var(--color-text-secondary)' }} />
                 </div>
                 <button className="header-btn">
@@ -601,10 +657,10 @@ export default function App() {
                     </svg>
                   </div>
                   <h3 className="serif-display" style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-                    Hello, I'm {selectedPastor.name}.
+                    Hello, I'm {selectedPastor ? selectedPastor.name : "your Spiritual Guide"}.
                   </h3>
                   <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', maxWidth: '240px', margin: '0 auto', lineHeight: 1.4 }}>
-                    I'm here to help you grow in faith and walk closer with God.
+                    {selectedPastor ? "I'm here to help you grow in faith and walk closer with God." : "I'm here to share faith-grounded teachings from trusted teachers."}
                   </p>
                 </div>
 
@@ -622,7 +678,27 @@ export default function App() {
                   } else {
                     return (
                       <div key={msg.id} className="chat-bubble-assistant-row">
-                        <img src={selectedPastor.image} alt={selectedPastor.name} className="chat-bubble-assistant-avatar" />
+                        {selectedPastor ? (
+                          <img src={selectedPastor.image} alt={selectedPastor.name} className="chat-bubble-assistant-avatar" />
+                        ) : (
+                          <div style={{ 
+                            width: 32, 
+                            height: 32, 
+                            borderRadius: '50%', 
+                            backgroundColor: 'var(--color-accent-taupe)', 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            alignItems: 'center',
+                            color: 'white',
+                            marginRight: 8,
+                            flexShrink: 0
+                          }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 2V22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                              <path d="M5 9H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                            </svg>
+                          </div>
+                        )}
                         <div className="chat-bubble-assistant-card">
                           <div className="chat-bubble-assistant-text">{msg.text}</div>
                           
@@ -645,6 +721,49 @@ export default function App() {
                                 ))}
                               </div>
                             </>
+                          )}
+
+                          {msg.video && (
+                            <div style={{
+                              backgroundColor: 'var(--color-surface-cream)',
+                              border: '1px solid var(--color-border-soft)',
+                              borderRadius: 16,
+                              padding: 12,
+                              marginTop: 14,
+                              marginBottom: 14,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 12,
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 6px var(--color-shadow-warm)'
+                            }}
+                            onClick={() => window.open(msg.video.url, '_blank')}
+                            >
+                              <div style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: '50%',
+                                backgroundColor: 'var(--color-accent-taupe)',
+                                color: 'white',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                flexShrink: 0
+                              }}>
+                                <Play size={15} fill="currentColor" style={{ marginLeft: 2 }} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-accent-taupe-dark)', marginBottom: 2 }}>
+                                  Recommended Teaching
+                                </div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {msg.video.title}
+                                </div>
+                                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 2 }}>
+                                  Video teaching • {msg.video.duration}
+                                </div>
+                              </div>
+                            </div>
                           )}
 
                           {/* Action panel */}
@@ -673,7 +792,27 @@ export default function App() {
                 {/* Typing / Loading simulation */}
                 {isTyping && (
                   <div className="chat-bubble-assistant-row">
-                    <img src={selectedPastor.image} alt={selectedPastor.name} className="chat-bubble-assistant-avatar" />
+                    {selectedPastor ? (
+                      <img src={selectedPastor.image} alt={selectedPastor.name} className="chat-bubble-assistant-avatar" />
+                    ) : (
+                      <div style={{ 
+                        width: 32, 
+                        height: 32, 
+                        borderRadius: '50%', 
+                        backgroundColor: 'var(--color-accent-taupe)', 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        color: 'white',
+                        marginRight: 8,
+                        flexShrink: 0
+                      }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 2V22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                          <path d="M5 9H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                    )}
                     <div className="chat-bubble-assistant-card" style={{ padding: '16px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div className="loader-dots">
@@ -682,9 +821,19 @@ export default function App() {
                           <span className="dot"></span>
                         </div>
                         <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-                          {typingStateIndex === 0 && `Searching ${selectedPastor.name}'s teachings...`}
-                          {typingStateIndex === 1 && "Grounding answer in Scripture..."}
-                          {typingStateIndex === 2 && "Preparing response..."}
+                          {selectedPastor ? (
+                            <>
+                              {typingStateIndex === 0 && `Searching ${selectedPastor.name}'s teachings...`}
+                              {typingStateIndex === 1 && "Grounding answer in Scripture..."}
+                              {typingStateIndex === 2 && "Preparing response..."}
+                            </>
+                          ) : (
+                            <>
+                              {typingStateIndex === 0 && "Searching general faith teachings..."}
+                              {typingStateIndex === 1 && "Grounding in Scriptures..."}
+                              {typingStateIndex === 2 && "Preparing general guidance..."}
+                            </>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -790,7 +939,7 @@ export default function App() {
                   borderRadius: 20, 
                   padding: 16,
                   display: 'flex',
-                  justifyContent: 'between',
+                  justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
                   <div>
@@ -801,7 +950,7 @@ export default function App() {
                       "{selectedScripture.sermon}"
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>
-                      Timestamp: {selectedScripture.timestamp} • {selectedPastor.name}
+                      Timestamp: {selectedScripture.timestamp} • {selectedPastor ? selectedPastor.name : "General Guidance"}
                     </div>
                   </div>
                   <button 
@@ -932,11 +1081,38 @@ export default function App() {
                 marginBottom: 24
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <img src={selectedPastor.image} alt={selectedPastor.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedPastor.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{selectedPastor.specialty}</div>
-                  </div>
+                  {selectedPastor ? (
+                    <>
+                      <img src={selectedPastor.image} alt={selectedPastor.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedPastor.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{selectedPastor.specialty}</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ 
+                        width: 36, 
+                        height: 36, 
+                        borderRadius: '50%', 
+                        backgroundColor: 'var(--color-accent-taupe)', 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        color: 'white',
+                        flexShrink: 0
+                      }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 2V22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                          <path d="M5 9H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 600 }}>General Guidance</div>
+                        <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Grounded in Multi-Teacher teachings</div>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <ChevronDown size={18} style={{ color: 'var(--color-text-secondary)', cursor: 'pointer' }} />
               </div>
