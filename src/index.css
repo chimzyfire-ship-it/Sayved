@@ -726,21 +726,17 @@ body {
   margin-bottom: 14px;
 }
 
-.scripture-chip {
-  padding: 6px 10px;
-  background-color: var(--color-chip-beige);
-  border-radius: 10px;
-  font-size: 11px;
+.scripture-text-link {
+  font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--color-accent-taupe-dark);
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
+  text-decoration: underline;
+  transition: color var(--transition-speed) ease;
 }
 
-.scripture-chip:hover {
-  background-color: var(--color-border-soft);
-  border-color: var(--color-accent-taupe);
+.scripture-text-link:hover {
+  color: var(--color-text-primary);
 }
 
 .chat-actions-row {

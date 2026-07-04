@@ -21,7 +21,8 @@ import {
   Play, 
   Pause, 
   Check,
-  Heart
+  Heart,
+  ExternalLink
 } from 'lucide-react';
 import { pastors } from './pastors';
 
@@ -122,7 +123,8 @@ export default function App() {
           sender: "assistant", 
           text: "God is not the author of fear, but of peace and a sound mind (2 Timothy 1:7). When you feel anxious, bring your worries to Him in prayer, and He will give you His peace that surpasses all understanding (Philippians 4:6-7). Trust that He has good plans for you, plans to prosper you and not to harm you, plans to give you hope and a future (Jeremiah 29:11). Faith is acting in confidence that God's plans are already established.", 
           time: "10:13 AM",
-          scriptures: ["philippians_4_6_7", "2_timothy_1_7", "jeremiah_29_11"]
+          scriptures: ["philippians_4_6_7", "2_timothy_1_7", "jeremiah_29_11"],
+          sermonUrl: "https://www.youtube.com/watch?v=1oW_W1W86Qk"
         }
       ]
     },
@@ -138,7 +140,8 @@ export default function App() {
           sender: "assistant", 
           text: "In the face of difficulty, we must anchor ourselves in divine wisdom. Luke 8:15 teaches us that a noble and good heart retains the Word and produces a harvest through perseverance. When your path seems uncertain, take shelter in His promises (Jeremiah 29:11). Ground your daily decisions in scripture, clear away the thorns of distractions, and let your soul rest in the knowledge that God's plans are designed to guide you securely.", 
           time: "Yesterday",
-          scriptures: ["jeremiah_29_11", "mark_4_39"]
+          scriptures: ["jeremiah_29_11", "mark_4_39"],
+          sermonUrl: "https://www.youtube.com/watch?v=3g8K1U1y0bA"
         }
       ]
     },
@@ -318,18 +321,22 @@ export default function App() {
       let responseText = "";
       let scriptureChips = [];
       let videoReference = null;
+      let sermonLink = null;
 
       // Grounding logic depending on selected pastor
       if (currentPastor) {
         if (currentPastor.id === "poju") {
           responseText = "God is not the author of fear, but of peace and a sound mind (2 Timothy 1:7). When you feel anxious, bring your worries to Him in prayer, and He will give you His peace that surpasses all understanding (Philippians 4:6-7). Trust that He has good plans for you, plans to prosper you and not to harm you, plans to give you hope and a future (Jeremiah 29:11). Faith is acting in confidence that God's plans are already established.";
           scriptureChips = ["philippians_4_6_7", "2_timothy_1_7", "jeremiah_29_11"];
+          sermonLink = "https://www.youtube.com/watch?v=1oW_W1W86Qk";
         } else if (currentPastor.id === "ita") {
           responseText = "In the face of difficulty, we must anchor ourselves in divine wisdom. Luke 8:15 teaches us that a noble and good heart retains the Word and produces a harvest through perseverance. When your path seems uncertain, take shelter in His promises (Jeremiah 29:11). Ground your daily decisions in scripture, clear away the thorns of distractions, and let your soul rest in the knowledge that God's plans are designed to guide you securely.";
           scriptureChips = ["jeremiah_29_11", "mark_4_39"];
+          sermonLink = "https://www.youtube.com/watch?v=3g8K1U1y0bA";
         } else {
           responseText = "Fear and adversity can feel overwhelming, but God's promise is clear: He has given us a spirit of power, love, and self-discipline, not of fear (2 Timothy 1:7). Let us remind ourselves of His power to calm every storm (Mark 4:39). Have courage! When you stand firm and declare His victory, He will strengthen you and give you a future filled with hope. Lean into prayer and let His strength flow through your family.";
           scriptureChips = ["2_timothy_1_7", "mark_4_39", "jeremiah_29_11"];
+          sermonLink = "https://www.youtube.com/watch?v=Fq1vj1k7x-0";
         }
       } else {
         // General teachings
@@ -348,7 +355,8 @@ export default function App() {
         text: responseText,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         scriptures: scriptureChips,
-        video: videoReference
+        video: videoReference,
+        sermonUrl: sermonLink
       };
 
       setThreads(prev => prev.map(t => {
@@ -766,17 +774,33 @@ export default function App() {
                 
                 {/* Assistant intro header */}
                 <div style={{ textAlign: 'center', margin: '16px 0 28px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2V22" stroke="#B79A73" strokeWidth="2.5" strokeLinecap="round"/>
-                      <path d="M5 9H19" stroke="#B79A73" strokeWidth="2.5" strokeLinecap="round"/>
-                    </svg>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                    {activePastor ? (
+                      <img src={activePastor.image} alt={activePastor.name} style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--color-border-soft)', boxShadow: '0 4px 12px var(--color-shadow-warm)' }} />
+                    ) : (
+                      <div style={{ 
+                        width: 80, 
+                        height: 80, 
+                        borderRadius: '50%', 
+                        backgroundColor: 'var(--color-accent-taupe)', 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        color: 'white',
+                        boxShadow: '0 4px 12px var(--color-shadow-warm)'
+                      }}>
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 2V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                          <path d="M5 9H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                    )}
                   </div>
-                  <h3 className="serif-display" style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-                    Hello, I'm {activePastor ? activePastor.name : "your Spiritual Guide"}.
+                  <h3 className="serif-display" style={{ fontSize: 24, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 4 }}>
+                    {activePastor ? activePastor.name : "General Guidance"}
                   </h3>
-                  <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', maxWidth: '240px', margin: '0 auto', lineHeight: 1.4 }}>
-                    {activePastor ? "I'm here to help you grow in faith and walk closer with God." : "I'm here to share faith-grounded teachings from trusted teachers."}
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-accent-taupe-dark)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {activePastor ? activePastor.ministry : "Sayved Spiritual Engine"}
                   </p>
                 </div>
 
@@ -817,26 +841,48 @@ export default function App() {
                         )}
                         <div className="chat-bubble-assistant-card">
                           <div className="chat-bubble-assistant-text">{msg.text}</div>
-                          
-                          {msg.scriptures && msg.scriptures.length > 0 && (
+                                                {msg.scriptures && msg.scriptures.length > 0 && (
                             <>
                               <div className="chat-references-divider" />
-                              <div className="chat-references-header">
-                                <BookOpen size={12} />
-                                Scripture References
+                              <div className="chat-references-header" style={{ marginBottom: 4 }}>
+                                Scripture References:
                               </div>
-                              <div className="chat-references-list">
+                              <div className="chat-references-list" style={{ gap: '4px 12px', marginBottom: 12 }}>
                                 {msg.scriptures.map(scriptureKey => (
-                                  <div 
+                                  <span 
                                     key={scriptureKey} 
-                                    className="scripture-chip"
+                                    className="scripture-text-link"
                                     onClick={() => handleOpenScripture(scriptureKey)}
                                   >
                                     {SCRIPTURES[scriptureKey]?.reference || scriptureKey}
-                                  </div>
+                                  </span>
                                 ))}
                               </div>
                             </>
+                          )}
+
+                          {msg.sermonUrl && (
+                            <div style={{ marginTop: 8, marginBottom: 12 }}>
+                              <a 
+                                href={msg.sermonUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{
+                                  fontSize: 12,
+                                  color: 'var(--color-accent-taupe-dark)',
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  fontWeight: 600,
+                                  borderBottom: '1px solid var(--color-accent-taupe-dark)',
+                                  paddingBottom: 2
+                                }}
+                              >
+                                <ExternalLink size={12} />
+                                Watch full teaching by {activePastor ? activePastor.name : "Teacher"} ↗
+                              </a>
+                            </div>
                           )}
 
                           {msg.video && (

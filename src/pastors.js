@@ -1,41 +1,44 @@
 export const pastors = [
   {
     id: "poju",
-    name: "Pastor Poju",
+    name: "Jerry Eze",
+    ministry: "Streams of Joy International",
     specialty: "Faith & Grace",
     image: "/assets/pastor_poju.jpg",
-    bio: "Pastor Poju Oyemade is the Senior Pastor and Founder of The Covenant Nation. He is known for his practical, scripture-grounded teachings that bridge spiritual concepts with everyday life, helping believers walk in faith, grace, and purpose.",
+    bio: "Pastor Jerry Eze is the founder and president of Streams of Joy International. He is known for the global prayer movement NSPPD, preaching faith, miracles, and spiritual alignment.",
     grounding: [
-      "Sermons from The Covenant Nation",
-      "Bible studies and teachings on Grace",
-      "Platform Nigeria and business seminar archives"
+      "NSPPD morning prayer archives",
+      "Preachings on faith and breakthrough",
+      "Streams of Joy ministries materials"
     ],
-    topics: ["Faith", "Grace", "Purpose", "Leadership", "Business", "Prayer"]
+    topics: ["Faith", "Prayer", "Miracles", "Breakthrough"]
   },
   {
     id: "ita",
-    name: "Pastor Ita",
+    name: "Bishop Feb Idahosa",
+    ministry: "Church of God Ministries",
     specialty: "Wisdom & Living",
     image: "/assets/pastor_ita.jpg",
-    bio: "Pastor Ita Udosen is a deeply respected teacher of the Word, focusing on practical Christian wisdom, character development, and spiritual maturity. His sermons help believers live out the truth of scripture in everyday choices.",
+    bio: "Bishop Feb Idahosa is a prominent Christian leader and president of Benson Idahosa University. He carries a message of wisdom, leadership, character development, and academic excellence.",
     grounding: [
-      "Expository Bible teachings",
-      "Wisdom literature and Proverbs studies",
-      "Spiritual growth seminar notes"
+      "Church of God Ministries archives",
+      "Seminars on wisdom and leadership",
+      "Benson Idahosa teachings"
     ],
-    topics: ["Wisdom", "Marriage", "Spiritual Growth", "Character", "Daily Living"]
+    topics: ["Wisdom", "Leadership", "Character", "Education"]
   },
   {
     id: "mike",
-    name: "Pastor Mike",
+    name: "Pastor Chris Oyakhilome",
+    ministry: "LoveWorld Incorporated",
     specialty: "Hope & Strength",
     image: "/assets/pastor_mike.jpg",
-    bio: "Pastor Mike Bamiloye is a pioneer in Christian drama and media ministry. He carries a powerful message of spiritual renewal, family restoration, and strength in times of adversity, inspiring hope and courage across generations.",
+    bio: "Pastor Chris Oyakhilome is the president of LoveWorld Inc. and Christ Embassy. He is a world-renowned teacher, author, and healing minister, preaching hope, faith, and victory in Christ.",
     grounding: [
-      "Drama ministry messages and devotionals",
-      "Teaching on spiritual warfare and victory",
-      "Family and relationship guides"
+      "Rhapsody of Realities daily devotionals",
+      "LoveWorld television teaching archives",
+      "Atmosphere for Miracles series"
     ],
-    topics: ["Hope", "Strength", "Family", "Spiritual Victory", "Courage", "Relationships"]
+    topics: ["Hope", "Faith", "Healing", "Spiritual Victory"]
   }
 ];
