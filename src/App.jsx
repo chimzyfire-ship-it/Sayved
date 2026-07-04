@@ -130,6 +130,32 @@ export default function App() {
     }
   }, [chatMessages, isTyping]);
 
+  // Lock document-level scrolling & prevent viewport overscroll on iOS
+  useEffect(() => {
+    const handleTouchMove = (e) => {
+      // Find the currently active scroll container
+      const scrollable = document.querySelector('.screen-content');
+      if (scrollable) {
+        // If touch gesture is outside the scrollable content, block it
+        if (!scrollable.contains(e.target)) {
+          if (e.cancelable) {
+            e.preventDefault();
+          }
+        }
+      } else {
+        // Block all if there is no scrollable area
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    return () => {
+      document.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, []);
+
   // Handle suggest chip shuffle
   const handleShuffleSuggestions = () => {
     const shuffled = [...SUGGESTION_POOL].sort(() => 0.5 - Math.random());
