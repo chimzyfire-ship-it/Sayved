@@ -86,7 +86,7 @@ body {
   }
   .phone-viewport {
     width: 100vw;
-    height: 100vh;
+    height: 100svh; /* Short Viewport Height to prevent Safari bottom address bar overlapping */
     border-radius: 0;
     box-shadow: none;
     overflow: hidden;
@@ -473,10 +473,10 @@ body {
 
 .devotion-left {
   flex: 1.2;
-  padding: 20px;
+  padding: 20px 22px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .devotion-tag {
@@ -489,18 +489,18 @@ body {
 }
 
 .devotion-title {
-  font-size: 16px;
+  font-size: 16.5px;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin-bottom: 6px;
-  line-height: 1.3;
+  margin-bottom: 4px;
+  line-height: 1.35;
 }
 
 .devotion-subtitle {
   font-size: 12px;
   color: var(--color-text-secondary);
   line-height: 1.4;
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 
 .devotion-btn {
@@ -917,70 +917,4 @@ body {
   margin-bottom: 20px;
 }
 
-/* Ambient Floating Lights for landing page */
-.ambient-light {
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(254, 253, 252, 0.7) 0%, rgba(238, 231, 222, 0.25) 50%, rgba(254, 253, 252, 0) 100%);
-  filter: blur(8px);
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0;
-}
 
-.light-1 {
-  width: 70px;
-  height: 70px;
-  top: 15%;
-  left: 20%;
-  animation: floatLightOne 24s infinite ease-in-out;
-}
-
-.light-2 {
-  width: 90px;
-  height: 90px;
-  top: 45%;
-  right: 12%;
-  animation: floatLightTwo 32s infinite ease-in-out;
-}
-
-.light-3 {
-  width: 60px;
-  height: 60px;
-  bottom: 30%;
-  left: 10%;
-  animation: floatLightThree 20s infinite ease-in-out;
-}
-
-.light-4 {
-  width: 80px;
-  height: 80px;
-  top: 70%;
-  right: 25%;
-  animation: floatLightOne 28s infinite ease-in-out;
-  animation-delay: -6s;
-}
-
-@keyframes floatLightOne {
-  0% { transform: translate(0, 0) scale(1); opacity: 0; }
-  10% { opacity: 0.25; }
-  50% { transform: translate(40px, -80px) scale(1.2); opacity: 0.45; }
-  90% { opacity: 0.25; }
-  100% { transform: translate(-20px, -30px) scale(1); opacity: 0; }
-}
-
-@keyframes floatLightTwo {
-  0% { transform: translate(0, 0) scale(1); opacity: 0; }
-  15% { opacity: 0.3; }
-  45% { transform: translate(-60px, 60px) scale(0.85); opacity: 0.5; }
-  85% { opacity: 0.25; }
-  100% { transform: translate(20px, -20px) scale(1); opacity: 0; }
-}
-
-@keyframes floatLightThree {
-  0% { transform: translate(0, 0) scale(1); opacity: 0; }
-  8% { opacity: 0.25; }
-  60% { transform: translate(30px, -50px) scale(1.15); opacity: 0.4; }
-  92% { opacity: 0.2; }
-  100% { transform: translate(0, 0) scale(1); opacity: 0; }
-}

@@ -297,7 +297,7 @@ export default function App() {
       case "auth":
         return "/assets/bg_auth.jpg";
       case "home":
-        return "/assets/sayved_main_background.png";
+        return "/assets/sayved_main_background.jpg";
       case "new-chat":
         return "/assets/bg_new_chat.jpg";
       case "chat":
@@ -316,16 +316,7 @@ export default function App() {
         <div 
           className="screen-bg" 
           style={{ backgroundImage: `url(${activeBg})` }}
-        >
-          {activeView === "home" && (
-            <>
-              <div className="ambient-light light-1" />
-              <div className="ambient-light light-2" />
-              <div className="ambient-light light-3" />
-              <div className="ambient-light light-4" />
-            </>
-          )}
-        </div>
+        />
         <div className="screen-bg-overlay" />
 
         {/* Viewport Screen Content */}
@@ -500,15 +491,9 @@ export default function App() {
               <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600, marginTop: 12, marginBottom: 8 }}>Today's reflection</h3>
               <div className="devotion-card" onClick={() => setActiveView("devotion")}>
                 <div className="devotion-left">
-                  <div>
-                    <div className="devotion-tag">Today's Devotion</div>
-                    <h4 className="devotion-title serif-display">{DEVOTION.title}</h4>
-                    <p className="devotion-subtitle">{DEVOTION.readingTime} • Click to read</p>
-                  </div>
-                  <button className="devotion-btn">
-                    <BookOpen size={13} />
-                    Read Devotion
-                  </button>
+                  <div className="devotion-tag">Today's Devotion</div>
+                  <h4 className="devotion-title serif-display" style={{ margin: '4px 0' }}>{DEVOTION.title}</h4>
+                  <p className="devotion-subtitle">{DEVOTION.readingTime} • Click to read</p>
                 </div>
                 <div className="devotion-right" style={{ backgroundImage: "url('/assets/devotion_preview.jpg')" }} />
               </div>
