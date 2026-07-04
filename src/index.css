@@ -918,3 +918,17 @@ body {
 }
 
 
+.thread-list-card {
+  transition: all var(--transition-speed) cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.thread-list-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px var(--color-shadow-warm) !important;
+  background-color: var(--color-surface-cream) !important;
+  border-color: var(--color-accent-taupe) !important;
+}
+
+.thread-list-card:active {
+  transform: scale(0.98);
+}

@@ -105,23 +105,82 @@ const INITIAL_MESSAGES = [
 ];
 
 export default function App() {
-  const [activeView, setActiveView] = useState("auth"); // auth, home, new-chat, chat, devotion, scripture, profile
+  const [activeView, setActiveView] = useState("auth"); // auth, home, new-chat, chat, devotion, scripture, profile, chats-list
   const [selectedPastor, setSelectedPastor] = useState(null);
   const [promptText, setPromptText] = useState("");
   const [suggestions, setSuggestions] = useState(SUGGESTION_POOL.slice(0, 3));
-  const [chatMessages, setChatMessages] = useState(INITIAL_MESSAGES);
+  const [threads, setThreads] = useState([
+    {
+      id: "thread-1",
+      title: "Dealing with Anxiety",
+      pastorId: "poju",
+      date: "2h ago",
+      messages: [
+        { id: "m1", sender: "user", text: "How do I handle fear and anxiety about the future?", time: "10:12 AM" },
+        { 
+          id: "m2", 
+          sender: "assistant", 
+          text: "God is not the author of fear, but of peace and a sound mind (2 Timothy 1:7). When you feel anxious, bring your worries to Him in prayer, and He will give you His peace that surpasses all understanding (Philippians 4:6-7). Trust that He has good plans for you, plans to prosper you and not to harm you, plans to give you hope and a future (Jeremiah 29:11). Faith is acting in confidence that God's plans are already established.", 
+          time: "10:13 AM",
+          scriptures: ["philippians_4_6_7", "2_timothy_1_7", "jeremiah_29_11"]
+        }
+      ]
+    },
+    {
+      id: "thread-2",
+      title: "Patience and Growth",
+      pastorId: "ita",
+      date: "Yesterday",
+      messages: [
+        { id: "m3", sender: "user", text: "Why does it take so long for prayers to be answered?", time: "Yesterday" },
+        { 
+          id: "m4", 
+          sender: "assistant", 
+          text: "In the face of difficulty, we must anchor ourselves in divine wisdom. Luke 8:15 teaches us that a noble and good heart retains the Word and produces a harvest through perseverance. When your path seems uncertain, take shelter in His promises (Jeremiah 29:11). Ground your daily decisions in scripture, clear away the thorns of distractions, and let your soul rest in the knowledge that God's plans are designed to guide you securely.", 
+          time: "Yesterday",
+          scriptures: ["jeremiah_29_11", "mark_4_39"]
+        }
+      ]
+    },
+    {
+      id: "thread-3",
+      title: "Guarding My Mind",
+      pastorId: null, // General guidance
+      date: "Jun 30",
+      messages: [
+        { id: "m5", sender: "user", text: "How can I protect my peace and mind during busy times?", time: "Jun 30" },
+        { 
+          id: "m6", 
+          sender: "assistant", 
+          text: "Based on general faith-based teachings, in times of difficulty or uncertainty, we are reminded to guard our hearts with diligence, for everything we do flows from it (Proverbs 4:23). When anxiety rises, we can rest in the promise that all things work together for the good of those who love God and are called according to His purpose (Romans 8:28). True strength is found in quietness and confidence, allowing His peace to anchor your soul in every storm.", 
+          time: "Jun 30",
+          scriptures: ["proverbs_4_23", "romans_8_28"],
+          video: {
+            title: "Finding Peace in Turbulent Times (General Teaching)",
+            url: "https://www.youtube.com/watch?v=1oW_W1W86Qk",
+            duration: "12:40"
+          }
+        }
+      ]
+    }
+  ]);
+  const [activeThreadId, setActiveThreadId] = useState("thread-1");
   const [isTyping, setIsTyping] = useState(false);
   const [typingStateIndex, setTypingStateIndex] = useState(0);
   const [ttsPlaying, setTtsPlaying] = useState(false);
   const [savedConversations, setSavedConversations] = useState([
-    { id: "saved-1", title: "Overcoming Fear & Anxiety", pastorName: "Pastor Poju", date: "Jul 2, 2026" },
-    { id: "saved-2", title: "Wisdom for Career Paths", pastorName: "Pastor Ita", date: "Jun 28, 2026" }
+    { id: "saved-1", title: "Dealing with Anxiety", pastorName: "Pastor Poju", date: "Jul 2, 2026" },
+    { id: "saved-2", title: "Patience and Growth", pastorName: "Pastor Ita", date: "Jun 28, 2026" }
   ]);
   const [selectedScripture, setSelectedScripture] = useState(SCRIPTURES.philippians_4_6_7);
   const [savedMsgIds, setSavedMsgIds] = useState(new Set());
   const [isRecording, setIsRecording] = useState(false);
 
   const chatEndRef = useRef(null);
+
+  const activeThread = threads.find(t => t.id === activeThreadId);
+  const chatMessages = activeThread ? activeThread.messages : [];
+  const activePastor = activeThread ? pastors.find(p => p.id === activeThread.pastorId) : null;
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -193,15 +252,44 @@ export default function App() {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setChatMessages(prev => [...prev, userMessage]);
-    setActiveView("chat");
+    let targetThreadId = activeThreadId;
+
+    if (activeView === "new-chat") {
+      // Create a new thread dynamically
+      targetThreadId = `thread-${Date.now()}`;
+      const newThread = {
+        id: targetThreadId,
+        title: queryText.length > 25 ? queryText.substring(0, 25) + "..." : queryText,
+        pastorId: selectedPastor ? selectedPastor.id : null,
+        date: "Just now",
+        messages: [userMessage]
+      };
+      setThreads(prev => [newThread, ...prev]);
+      setActiveThreadId(targetThreadId);
+      setActiveView("chat");
+    } else {
+      // Append to existing thread
+      setThreads(prev => prev.map(t => {
+        if (t.id === targetThreadId) {
+          return {
+            ...t,
+            date: "Just now",
+            messages: [...t.messages, userMessage]
+          };
+        }
+        return t;
+      }));
+    }
+
     setIsTyping(true);
     setTypingStateIndex(0);
 
+    const currentPastor = activeView === "new-chat" ? selectedPastor : (activeThread ? pastors.find(p => p.id === activeThread.pastorId) : null);
+
     // Dynamic loading messages
-    const loadingStates = selectedPastor
+    const loadingStates = currentPastor
       ? [
-          `Searching ${selectedPastor.name}'s teachings...`,
+          `Searching ${currentPastor.name}'s teachings...`,
           "Grounding answer in Scripture...",
           "Preparing scriptural response..."
         ]
@@ -232,11 +320,11 @@ export default function App() {
       let videoReference = null;
 
       // Grounding logic depending on selected pastor
-      if (selectedPastor) {
-        if (selectedPastor.id === "poju") {
+      if (currentPastor) {
+        if (currentPastor.id === "poju") {
           responseText = "God is not the author of fear, but of peace and a sound mind (2 Timothy 1:7). When you feel anxious, bring your worries to Him in prayer, and He will give you His peace that surpasses all understanding (Philippians 4:6-7). Trust that He has good plans for you, plans to prosper you and not to harm you, plans to give you hope and a future (Jeremiah 29:11). Faith is acting in confidence that God's plans are already established.";
           scriptureChips = ["philippians_4_6_7", "2_timothy_1_7", "jeremiah_29_11"];
-        } else if (selectedPastor.id === "ita") {
+        } else if (currentPastor.id === "ita") {
           responseText = "In the face of difficulty, we must anchor ourselves in divine wisdom. Luke 8:15 teaches us that a noble and good heart retains the Word and produces a harvest through perseverance. When your path seems uncertain, take shelter in His promises (Jeremiah 29:11). Ground your daily decisions in scripture, clear away the thorns of distractions, and let your soul rest in the knowledge that God's plans are designed to guide you securely.";
           scriptureChips = ["jeremiah_29_11", "mark_4_39"];
         } else {
@@ -263,7 +351,15 @@ export default function App() {
         video: videoReference
       };
 
-      setChatMessages(prev => [...prev, assistantMessage]);
+      setThreads(prev => prev.map(t => {
+        if (t.id === targetThreadId) {
+          return {
+            ...t,
+            messages: [...t.messages, assistantMessage]
+          };
+        }
+        return t;
+      }));
     }, 3200);
   };
 
@@ -628,14 +724,14 @@ export default function App() {
             <div className="screen-content screen-elements" style={{ paddingBottom: 160 }}>
               {/* Header row */}
               <div className="header-row">
-                <button className="header-btn" onClick={() => setActiveView("new-chat")}>
+                <button className="header-btn" onClick={() => setActiveView("chats-list")}>
                   <ChevronLeft size={20} />
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  {selectedPastor ? (
+                  {activePastor ? (
                     <>
-                      <img src={selectedPastor.image} alt={selectedPastor.name} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
-                      <span className="serif-display" style={{ fontSize: 16, fontWeight: 600 }}>{selectedPastor.name}</span>
+                      <img src={activePastor.image} alt={activePastor.name} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
+                      <span className="serif-display" style={{ fontSize: 16, fontWeight: 600 }}>{activePastor.name}</span>
                     </>
                   ) : (
                     <>
@@ -677,10 +773,10 @@ export default function App() {
                     </svg>
                   </div>
                   <h3 className="serif-display" style={{ fontSize: 22, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-                    Hello, I'm {selectedPastor ? selectedPastor.name : "your Spiritual Guide"}.
+                    Hello, I'm {activePastor ? activePastor.name : "your Spiritual Guide"}.
                   </h3>
                   <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', maxWidth: '240px', margin: '0 auto', lineHeight: 1.4 }}>
-                    {selectedPastor ? "I'm here to help you grow in faith and walk closer with God." : "I'm here to share faith-grounded teachings from trusted teachers."}
+                    {activePastor ? "I'm here to help you grow in faith and walk closer with God." : "I'm here to share faith-grounded teachings from trusted teachers."}
                   </p>
                 </div>
 
@@ -698,8 +794,8 @@ export default function App() {
                   } else {
                     return (
                       <div key={msg.id} className="chat-bubble-assistant-row">
-                        {selectedPastor ? (
-                          <img src={selectedPastor.image} alt={selectedPastor.name} className="chat-bubble-assistant-avatar" />
+                        {activePastor ? (
+                          <img src={activePastor.image} alt={activePastor.name} className="chat-bubble-assistant-avatar" />
                         ) : (
                           <div style={{ 
                             width: 32, 
@@ -812,8 +908,8 @@ export default function App() {
                 {/* Typing / Loading simulation */}
                 {isTyping && (
                   <div className="chat-bubble-assistant-row">
-                    {selectedPastor ? (
-                      <img src={selectedPastor.image} alt={selectedPastor.name} className="chat-bubble-assistant-avatar" />
+                    {activePastor ? (
+                      <img src={activePastor.image} alt={activePastor.name} className="chat-bubble-assistant-avatar" />
                     ) : (
                       <div style={{ 
                         width: 32, 
@@ -841,9 +937,9 @@ export default function App() {
                           <span className="dot"></span>
                         </div>
                         <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-                          {selectedPastor ? (
+                          {activePastor ? (
                             <>
-                              {typingStateIndex === 0 && `Searching ${selectedPastor.name}'s teachings...`}
+                              {typingStateIndex === 0 && `Searching ${activePastor.name}'s teachings...`}
                               {typingStateIndex === 1 && "Grounding answer in Scripture..."}
                               {typingStateIndex === 2 && "Preparing response..."}
                             </>
@@ -911,6 +1007,111 @@ export default function App() {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ================= CHATS LIST VIEW ================= */}
+          {activeView === "chats-list" && (
+            <div className="screen-content screen-elements" style={{ paddingBottom: 100 }}>
+              {/* Header row */}
+              <div className="header-row">
+                <button className="header-btn" onClick={() => setActiveView("home")}>
+                  <ChevronLeft size={20} />
+                </button>
+                <h3 className="header-title">Conversations</h3>
+                <button 
+                  className="header-btn" 
+                  onClick={() => {
+                    setSelectedPastor(null);
+                    setActiveView("new-chat");
+                  }}
+                  style={{ backgroundColor: 'var(--color-accent-taupe)', color: 'white', borderColor: 'var(--color-accent-taupe)' }}
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+
+              {/* Chat threads list */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+                {threads.map(thread => {
+                  const pastor = pastors.find(p => p.id === thread.pastorId);
+                  const lastMessage = thread.messages[thread.messages.length - 1];
+
+                  return (
+                    <div 
+                      key={thread.id}
+                      className="thread-list-card"
+                      onClick={() => {
+                        setActiveThreadId(thread.id);
+                        setActiveView("chat");
+                      }}
+                      style={{
+                        backgroundColor: 'var(--color-surface-white)',
+                        borderRadius: 20,
+                        border: '1px solid var(--color-border-soft)',
+                        padding: 16,
+                        display: 'flex',
+                        gap: 12,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px var(--color-shadow-warm)',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {/* Avatar or General logo */}
+                      <div style={{ flexShrink: 0 }}>
+                        {pastor ? (
+                          <img src={pastor.image} alt={pastor.name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--color-border-soft)' }} />
+                        ) : (
+                          <div style={{ 
+                            width: 48, 
+                            height: 48, 
+                            borderRadius: '50%', 
+                            backgroundColor: 'var(--color-accent-taupe)', 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            alignItems: 'center',
+                            color: 'white'
+                          }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 2V22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                              <path d="M5 9H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Thread details */}
+                      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-accent-taupe-dark)' }}>
+                            {pastor ? pastor.name : "General Guidance"}
+                          </span>
+                          <span style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{thread.date}</span>
+                        </div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {thread.title}
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {lastMessage ? lastMessage.text : "No messages yet"}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Start new conversation button at bottom */}
+              <button 
+                className="auth-btn auth-btn-phone" 
+                onClick={() => {
+                  setSelectedPastor(null);
+                  setActiveView("new-chat");
+                }}
+                style={{ marginTop: 24, justifyContent: 'center', margin: '24px 0 0' }}
+              >
+                <Plus size={16} style={{ marginRight: 8 }} />
+                New Conversation
+              </button>
             </div>
           )}
 
@@ -1211,14 +1412,8 @@ export default function App() {
                 <span className="tab-label">Home</span>
               </button>
               <button 
-                className={`tab-item ${activeView === "new-chat" || activeView === "chat" ? 'tab-item-active' : ''}`}
-                onClick={() => {
-                  if (chatMessages.length > 1) {
-                    setActiveView("chat");
-                  } else {
-                    setActiveView("new-chat");
-                  }
-                }}
+                className={`tab-item ${activeView === "new-chat" || activeView === "chat" || activeView === "chats-list" ? 'tab-item-active' : ''}`}
+                onClick={() => setActiveView("chats-list")}
               >
                 <MessageSquare size={20} />
                 <span className="tab-label">Chats</span>
