@@ -106,6 +106,8 @@ body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 24px 24px 100px; /* padding-bottom to clear tab bar or composer */
   position: relative;
   z-index: 2;
@@ -256,6 +258,7 @@ body {
   display: flex;
   gap: 12px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   width: 100%;
   max-width: 100%;
   padding: 4px 4px 16px;
@@ -374,6 +377,8 @@ body {
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 8px 0;
   margin-bottom: 16px;
   scrollbar-width: none;
