@@ -316,7 +316,16 @@ export default function App() {
         <div 
           className="screen-bg" 
           style={{ backgroundImage: `url(${activeBg})` }}
-        />
+        >
+          {activeView === "home" && (
+            <>
+              <div className="ambient-light light-1" />
+              <div className="ambient-light light-2" />
+              <div className="ambient-light light-3" />
+              <div className="ambient-light light-4" />
+            </>
+          )}
+        </div>
         <div className="screen-bg-overlay" />
 
         {/* Viewport Screen Content */}
