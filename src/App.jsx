@@ -90,30 +90,6 @@ const scripture = {
   why: "Used as a quiet image of guidance. It grounds the answer without turning the moment into a proof-text dump.",
 };
 
-const initialMemoryItems = [
-  {
-    id: "memory-fear-behind",
-    type: "Theme",
-    title: "Fear of falling behind",
-    body: "A repeated worry that life is moving faster than your capacity to respond.",
-    source: "Talk, July 5",
-  },
-  {
-    id: "memory-strength",
-    type: "Strength",
-    title: "You return to prayer before decisions",
-    body: "You tend to pause, ask for wisdom, and look for the next faithful step before acting.",
-    source: "Talk, June 30",
-  },
-  {
-    id: "memory-commitment",
-    type: "Commitment",
-    title: "Morning quiet rhythm",
-    body: "You wanted a short morning practice that does not feel like pressure or performance.",
-    source: "The Well",
-  },
-];
-
 const defaultDevotion = {
   title: "Tending the Soil of the Heart",
   scriptureRef: "Luke 8:15",
@@ -123,6 +99,497 @@ const defaultDevotion = {
   prayer:
     "Lord, soften my heart today. Help me receive enough light for the step in front of me, and lay down the need to prove my growth.",
 };
+
+// Swagger UI Endpoint definitions matching docs/04-api-specification.md
+const swaggerEndpoints = [
+  {
+    id: "get-teachers",
+    method: "GET",
+    path: "/teachers",
+    description: "Returns active teacher slots and verification state.",
+    payload: null,
+    response: {
+      teachers: [
+        {
+          id: "tb-joshua-uuid",
+          slug: "tb-joshua",
+          display_name: "Prophet T.B. Joshua",
+          subtitle: "SCOAN",
+          verification_status: "estate",
+          affiliation_label: "Estate - official sources only",
+          deep_rag_allowed: false,
+          topics: ["Faith", "Healing", "Prayer"],
+        },
+        {
+          id: "pastor-chris-uuid",
+          slug: "pastor-chris",
+          display_name: "Pastor Chris Oyakhilome",
+          subtitle: "Christ Embassy",
+          verification_status: "unverified",
+          affiliation_label: "Not yet affiliated with Sayved",
+          deep_rag_allowed: false,
+          topics: ["Faith", "Healing", "Prayer"],
+        },
+      ],
+    },
+  },
+  {
+    id: "get-teacher-sources",
+    method: "GET",
+    path: "/teachers/:id/sources",
+    description: "Returns official source routes and licensed source metadata.",
+    payload: null,
+    response: {
+      teacher: {
+        id: "tb-joshua-uuid",
+        display_name: "Prophet T.B. Joshua",
+        verification_status: "estate",
+      },
+      sources: [
+        {
+          id: "source-1",
+          title: "Official SCOAN Message",
+          source_type: "youtube",
+          source_url: "https://youtube.com/user/emmanueltv",
+          rights_status: "official_public_route",
+          playback_mode: "official_embed",
+        },
+      ],
+    },
+  },
+  {
+    id: "post-request-teacher",
+    method: "POST",
+    path: "/request-teacher",
+    description: "Creates the demand signal for licensing.",
+    payload: {
+      teacher_id: "pastor-chris-uuid",
+      context: "User wanted deeper answers on faith.",
+    },
+    response: {
+      ok: true,
+      message: "We logged your request.",
+    },
+  },
+  {
+    id: "post-start-conversation",
+    method: "POST",
+    path: "/start-conversation",
+    description: "Creates a Director thread.",
+    payload: {
+      initial_prompt: "I feel like I am falling behind.",
+      mode: "director",
+      source: "text",
+      active_teacher_id: null,
+    },
+    response: {
+      conversation_id: "thread-xyz-789-uuid",
+      title: "Fear Of Falling Behind",
+    },
+  },
+  {
+    id: "post-send-message",
+    method: "POST",
+    path: "/send-message",
+    description:
+      "Generates the Director's answer with citations and memory context.",
+    payload: {
+      conversation_id: "thread-xyz-uuid",
+      content: "What does Scripture say about fear?",
+      source: "text",
+      mode: "teacher_focus",
+      active_teacher_id: "tb-joshua-uuid",
+      source_scope: "my_teachers",
+      client_memory_context: [
+        {
+          id: "local-memory-1",
+          type: "theme",
+          content: "recurring fear of being behind",
+          salience: 0.84,
+        },
+      ],
+    },
+    response: {
+      conversation_id: "thread-xyz-uuid",
+      user_message: {
+        id: "msg-user-1",
+        content: "What does Scripture say about fear?",
+        created_at: "2026-07-06T04:30:00Z",
+      },
+      director_message: {
+        id: "msg-dir-1",
+        content:
+          "We can go slowly. Scripture guides us in times of fear. Prophet T.B. Joshua's teachings route to official public messages where he anchor faith in trials.",
+        rendered_mode: "teacher_route",
+        created_at: "2026-07-06T04:30:02Z",
+        latency_ms: 1800,
+      },
+      references: [
+        {
+          type: "official_route",
+          teacher_id: "tb-joshua-uuid",
+          source_id: "source-1",
+          label: "Official SCOAN message",
+          verification_status: "estate",
+          action: "play",
+        },
+        {
+          type: "scripture",
+          id: "psalm-119-105",
+          label: "Psalm 119:105",
+          reason: "Used as comfort, not correction.",
+        },
+      ],
+      teacher_gate: {
+        verification_status: "estate",
+        deep_rag_used: false,
+        request_teacher_available: true,
+      },
+      memory: {
+        used: true,
+        ids: ["local-memory-1"],
+      },
+    },
+  },
+  {
+    id: "post-route-teacher-source",
+    method: "POST",
+    path: "/route-teacher-source",
+    description:
+      "Returns safe official content recommendations for unverified/estate teachers.",
+    payload: {
+      teacher_id: "pastor-chris-uuid",
+      topic: "anxiety",
+      user_prompt: "I feel afraid of the future.",
+    },
+    response: {
+      teacher: {
+        display_name: "Pastor Chris Oyakhilome",
+        verification_status: "unverified",
+        affiliation_label: "Official sources only",
+      },
+      routes: [
+        {
+          source_id: "src-chris-1",
+          title: "Official Christ Embassy message",
+          source_url: "https://...",
+          playback_mode: "official_embed",
+          reason: "Focuses on speaking faith over fear.",
+        },
+      ],
+      brief_attributed_quote: {
+        text: "Don't fear the future; shape it with words of faith.",
+        source_label: "Publicly attributed teaching",
+        source_url: "https://...",
+      },
+      request_teacher_available: true,
+    },
+  },
+  {
+    id: "get-council",
+    method: "GET",
+    path: "/council",
+    description: "Returns the user's current seated theological council slots.",
+    payload: null,
+    response: {
+      seats: [
+        { index: 0, teacher_id: "tb-joshua-uuid", role: "librarian" },
+        { index: 1, teacher_id: null, role: "open" },
+      ],
+    },
+  },
+  {
+    id: "post-council-seats",
+    method: "POST",
+    path: "/council/seats",
+    description: "Adds or replaces a Council seat.",
+    payload: {
+      teacher_id: "pastor-chris-uuid",
+      seat_index: 2,
+    },
+    response: {
+      ok: true,
+      message: "Seated teacher in slot 2.",
+    },
+  },
+  {
+    id: "post-council-session",
+    method: "POST",
+    path: "/council/session",
+    description: "Generates a Director-gathered Council response.",
+    payload: {
+      prompt: "I need guidance on morning routines.",
+    },
+    response: {
+      session_id: "session-xyz",
+      director_synthesis:
+        "I have gathered the Council. Their public teachings point to starting with prayer before speed.",
+      seated_contributions: [
+        {
+          teacher_name: "Pastor Chris Oyakhilome",
+          status: "unverified",
+          quote: "Starting your day with confession builds confidence.",
+          source_link: "https://...",
+        },
+      ],
+    },
+  },
+  {
+    id: "post-compare-teachings",
+    method: "POST",
+    path: "/compare-teachings",
+    description: "Side-by-side verification-aware teachings comparison.",
+    payload: {
+      teacher_ids: ["tb-joshua-uuid", "pastor-chris-uuid"],
+      question: "How do they approach fear?",
+    },
+    response: {
+      can_compare_deeply: false,
+      warning:
+        "Compare Teachings is in source-routing mode. Deep comparison is locked.",
+      comparison: [
+        {
+          teacher_name: "Prophet T.B. Joshua",
+          theme: "Faith matches trials.",
+          source_route: "https://...",
+        },
+        {
+          teacher_name: "Pastor Chris Oyakhilome",
+          theme: "Speak faith declarations.",
+          source_route: "https://...",
+        },
+      ],
+    },
+  },
+  {
+    id: "post-generate-disputation",
+    method: "POST",
+    path: "/generate-disputation",
+    description:
+      "Generates Director-narrated debate (restricted to verified/public-domain only).",
+    payload: {
+      teacher_ids: ["tb-joshua-uuid", "pastor-chris-uuid"],
+      topic: "creed",
+    },
+    response: {
+      error: {
+        code: "DISPUTATION_LOCKED",
+        message:
+          "Disputation requires verified or public-domain voices. Unverified/estate voices cannot participate.",
+      },
+    },
+  },
+  {
+    id: "get-resolve-scripture",
+    method: "GET",
+    path: "/resolve-scripture-reference?id=uuid",
+    description: "Resolves passage details and why it was referenced.",
+    payload: null,
+    response: {
+      reference: "Psalm 119:105",
+      passage: "Your word is a lamp for my feet, a light on my path.",
+      why_this_verse:
+        "Referenced because the Director focused on the value of guidance.",
+      related_source: {
+        id: "source-1",
+        title: "Official SCOAN sermon",
+        source_url: "https://...",
+      },
+    },
+  },
+  {
+    id: "get-today-well",
+    method: "GET",
+    path: "/today-well",
+    description: "Returns the finite daily feed for The Well.",
+    payload: null,
+    response: {
+      date: "2026-07-06",
+      is_sunday_silent: false,
+      items: [
+        {
+          type: "scripture",
+          title: "Today's Scripture",
+          reference: "Psalm 119:105",
+        },
+        {
+          type: "reflection",
+          title: "A quiet word",
+          body: "Focus on the step in front of you.",
+        },
+      ],
+      end_message: "The Well ends here today.",
+    },
+  },
+  {
+    id: "get-today-devotion",
+    method: "GET",
+    path: "/today-devotion",
+    description: "Returns the daily devotion reflection layout.",
+    payload: null,
+    response: {
+      title: "Tending the Soil of the Heart",
+      scriptureRef: "Luke 8:15",
+      readTime: "3 min read",
+      reflection: "Growth is not performance. soft soil lets root develop.",
+      prayer: "Lord, soften my heart today.",
+    },
+  },
+  {
+    id: "post-extract-memory",
+    method: "POST",
+    path: "/extract-memory",
+    description:
+      "Instructs client-side extraction based on local privacy settings.",
+    payload: {
+      conversation_id: "thread-xyz",
+      messages: [{ role: "user", content: "I keep feeling behind." }],
+      privacy_mode: "local_only",
+    },
+    response: {
+      memories: [
+        {
+          type: "theme",
+          content: "recurring fear of being behind",
+          emotional_weight: 0.82,
+          salience: 0.76,
+        },
+      ],
+      storage_instruction: "store_locally_encrypted",
+    },
+  },
+  {
+    id: "post-save-memory-correction",
+    method: "POST",
+    path: "/save-memory-correction",
+    description:
+      "Records encrypted correction envelope or local acknowledgement.",
+    payload: {
+      memory_id: "local-mem-id",
+      corrected_content: "Corrected theme note",
+    },
+    response: {
+      ok: true,
+      message: "Correction acknowledged.",
+    },
+  },
+  {
+    id: "post-forget-memory",
+    method: "POST",
+    path: "/forget-memory",
+    description:
+      "Requests database delete and issues local vault deletion instruction.",
+    payload: {
+      memory_id: "local-mem-id",
+    },
+    response: {
+      ok: true,
+      vault_delete_instruction: "purge_plaintext",
+    },
+  },
+  {
+    id: "post-generate-autobiography",
+    method: "POST",
+    path: "/generate-autobiography",
+    description:
+      "Builds a client-side autobiography preview without storing server plaintext.",
+    payload: {
+      excerpts: [
+        "Theme: fear of falling behind",
+        "Strength: pausing before panic",
+      ],
+    },
+    response: {
+      autobiography_summary:
+        "You are becoming someone who pauses before panic...",
+      analysis_period: "90 days",
+    },
+  },
+  {
+    id: "post-process-echo-sermon",
+    method: "POST",
+    path: "/process-echo-sermon",
+    description: "Performs local sermon transcription summary sync.",
+    payload: {
+      mode: "local_summary_upload",
+      church_name: "Vanguard",
+      captured_on: "2026-07-05",
+      encrypted_summary: "<ciphertext>",
+    },
+    response: {
+      echo_sermon_id: "sermon-123-uuid",
+      rhythm_created: true,
+    },
+  },
+  {
+    id: "post-transcribe-audio",
+    method: "POST",
+    path: "/transcribe-audio",
+    description: "Transcribes voice prompt if on-device model is unavailable.",
+    payload: {
+      audio_blob_base64: "<data>",
+    },
+    response: {
+      text: "I am feeling overwhelmed.",
+    },
+  },
+  {
+    id: "post-synthesize-audio",
+    method: "POST",
+    path: "/synthesize-director-audio",
+    description:
+      "Synthesizes TTS response (restricted to Director's voice only).",
+    payload: {
+      message_id: "msg-dir-1",
+      voice: "director-calm",
+    },
+    response: {
+      audio_url: "https://sayved.vercel.app/assets/director-voice.mp3",
+      duration_seconds: 92,
+    },
+  },
+  {
+    id: "post-crisis-check",
+    method: "POST",
+    path: "/crisis-check",
+    description: "Pre-screen validation checks for suicide/crisis risks.",
+    payload: {
+      content: "I do not want to be here anymore.",
+      region: "US",
+    },
+    response: {
+      crisis_detected: true,
+      level: "imminent",
+      handoff: {
+        message:
+          "I am really glad you said this. Please contact immediate help now.",
+        resources: [
+          {
+            label: "988 Suicide & Crisis Lifeline",
+            action: "call",
+            value: "988",
+          },
+        ],
+      },
+      log_policy: "event_only_no_content",
+    },
+  },
+  {
+    id: "post-record-consent",
+    method: "POST",
+    path: "/record-consent",
+    description: "Acknowledges consent agreements.",
+    payload: {
+      consent_type: "privacy",
+      version: "2026-07-06",
+      accepted: true,
+    },
+    response: {
+      ok: true,
+      timestamp: "2026-07-06T08:45:00Z",
+    },
+  },
+];
 
 function Mark({ small = false }) {
   return (
@@ -242,6 +709,14 @@ function TeacherCard({ teacher, onOpen, onSeat, isSeated }) {
 }
 
 function App() {
+  // Authentication states
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authConfirmPassword, setAuthConfirmPassword] = useState("");
+  const [authMode, setAuthMode] = useState("signin"); // signin, signup
+  const [authError, setAuthError] = useState("");
+
   const [onboarded, setOnboarded] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState("welcome"); // welcome, privacy, rhythm, consent
   const [userIntent, setUserIntent] = useState("");
@@ -258,20 +733,21 @@ function App() {
   const [screen, setScreen] = useState("talk");
   const [scope, setScope] = useState("Sayved");
   const [selectedTeacher, setSelectedTeacher] = useState(teachers[0]);
-  const [selectedMemory, setSelectedMemory] = useState(initialMemoryItems[0]);
+  const [selectedMemory, setSelectedMemory] = useState(null);
   const [composer, setComposer] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [bibleSearchQuery, setBibleSearchQuery] = useState("");
 
-  const [memories, setMemories] = useState(initialMemoryItems);
+  // Stale/Prised Initial states (cleared mock data)
+  const [memories, setMemories] = useState([]);
   const [recoveryContact, setRecoveryContact] = useState({
     name: "",
     contact: "",
     relationship: "",
   });
   const [councilSeats, setCouncilSeats] = useState([
-    teachers[0].id,
-    teachers[1].id,
+    null,
+    null,
     null,
     null,
     null,
@@ -293,26 +769,15 @@ function App() {
   const [isCouncilDrawerOpen, setIsCouncilDrawerOpen] = useState(false);
   const [selectedSeatIndex, setSelectedSeatIndex] = useState(null);
 
-  const [messages, setMessages] = useState([
-    {
-      id: "director-1",
-      role: "director",
-      text: "I am here with you. We can go slowly. Tell me what is actually on your heart, and I will answer as Sayved, grounded in Scripture and careful with anything I cite.",
-    },
-    {
-      id: "user-1",
-      role: "user",
-      text: "I feel like I am falling behind.",
-    },
-    {
-      id: "director-2",
-      role: "director",
-      text: "Can I name something gently? This sounds like the old fear of being behind wearing new clothes. We do not have to solve your whole life tonight. The next faithful step may be smaller than the pressure is telling you.",
-      scripture: true,
-      memory: true,
-      source: true,
-    },
-  ]);
+  // Clear all mock chat history on initialization
+  const [messages, setMessages] = useState([]);
+
+  // Swagger UI Console states
+  const [apiSearch, setApiSearch] = useState("");
+  const [activeEndpoint, setActiveEndpoint] = useState(null);
+  const [endpointInputs, setEndpointInputs] = useState({});
+  const [endpointResponses, setEndpointResponses] = useState({});
+  const [endpointLoading, setEndpointLoading] = useState({});
 
   // Synchronize dynamic tab selection
   const activeTab = useMemo(() => {
@@ -341,6 +806,7 @@ function App() {
         "bible",
         "recovery",
         "dashboard",
+        "swagger",
       ].includes(screen)
     )
       return "walk";
@@ -372,6 +838,30 @@ function App() {
     setScreen(nextScreen);
   }
 
+  // Handle Authentication validation
+  const handleAuth = () => {
+    if (!authEmail.trim() || !authPassword.trim()) {
+      setAuthError("Email and Password fields are required.");
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(authEmail)) {
+      setAuthError("Please enter a valid email address.");
+      return;
+    }
+    if (authPassword.length < 6) {
+      setAuthError("Password must be at least 6 characters long.");
+      return;
+    }
+    if (authMode === "signup") {
+      if (authPassword !== authConfirmPassword) {
+        setAuthError("Passwords do not match.");
+        return;
+      }
+    }
+    setAuthError("");
+    setAuthenticated(true);
+  };
+
   function handleSend() {
     if (!composer.trim()) return;
     const prompt = composer.trim();
@@ -399,11 +889,26 @@ function App() {
       let hasMemory = false;
       let hasSource = false;
 
+      // Extract mock memory dynamically if the user types a recurring theme
+      if (/behind|late|rush/i.test(prompt) && memories.length === 0) {
+        const extracted = {
+          id: `mem-${Date.now()}`,
+          type: "Theme",
+          title: "Fear of falling behind",
+          body: "A repeated worry that life is moving faster than your capacity to respond.",
+          source: "Talk, July 6",
+        };
+        setMemories([extracted]);
+        setSelectedMemory(extracted);
+      }
+
       if (scope === "Sayved") {
         replyText =
           "I hear the weight in that. Let us take it one clear step: name what is true, receive what Scripture can steady, and choose one obedient action you can carry today.";
         hasScripture = true;
-        hasMemory = true;
+        if (memories.length > 0) {
+          hasMemory = true;
+        }
       } else if (scope === "My Council") {
         const seatedNames = councilSeats
           .map((id) => teachers.find((t) => t.id === id))
@@ -411,10 +916,14 @@ function App() {
           .map((t) => t.name)
           .join(", ");
 
-        replyText = `Gathering the Council. I have checked the seats for ${
-          seatedNames || "no teachers currently seated"
-        }. Since they are unverified or estate-owned, I will hold the voice as Sayved and avoid synthesized responses. Here are their public routes.`;
-        hasSource = true;
+        if (seatedNames) {
+          replyText = `Gathering the Council. I have checked the seats for ${seatedNames}. Since they are unverified or estate-owned, I will hold the voice as Sayved and avoid synthesized responses. Here are their public routes.`;
+          hasSource = true;
+        } else {
+          replyText =
+            "Your Council is currently empty. I will stand with you as Sayved. Go to the Follow tab to seat teachers in your theological council.";
+          hasScripture = true;
+        }
       } else {
         // My Teachers mode
         replyText = `Consulting ${selectedTeacher.name}'s library. As a ${selectedTeacher.type.toLowerCase()}, they are unverified. I will stay as Sayved and route you to official public sources.`;
@@ -435,6 +944,44 @@ function App() {
       ]);
     }, 800);
   }
+
+  // Handle Swagger UI execution
+  const executeEndpoint = (endpoint) => {
+    const id = endpoint.id;
+    setEndpointLoading((prev) => ({ ...prev, [id]: true }));
+
+    // Simulate API Network Delay
+    setTimeout(() => {
+      let customInput = endpointInputs[id];
+      let parsedInput = null;
+
+      try {
+        if (customInput) {
+          parsedInput = JSON.parse(customInput);
+        }
+      } catch {
+        // Fallback if JSON parse fails
+      }
+
+      let resPayload = { ...endpoint.response };
+
+      // Dynamic response mockup adjustments
+      if (id === "post-crisis-check" && parsedInput && parsedInput.content) {
+        const containsSuicide = /suicide|kill/i.test(parsedInput.content);
+        resPayload.crisis_detected = containsSuicide;
+        if (!containsSuicide) {
+          resPayload.level = "none";
+          resPayload.handoff = null;
+        }
+      }
+
+      setEndpointResponses((prev) => ({
+        ...prev,
+        [id]: JSON.stringify(resPayload, null, 2),
+      }));
+      setEndpointLoading((prev) => ({ ...prev, [id]: false }));
+    }, 600);
+  };
 
   // Helper formatting for seconds to MM:SS
   const formatTime = (secs) => {
@@ -481,6 +1028,14 @@ function App() {
       v.book.toLowerCase().includes(bibleSearchQuery.toLowerCase()),
   );
 
+  // Filter API Swagger list
+  const filteredEndpoints = swaggerEndpoints.filter(
+    (e) =>
+      e.path.toLowerCase().includes(apiSearch.toLowerCase()) ||
+      e.description.toLowerCase().includes(apiSearch.toLowerCase()) ||
+      e.method.toLowerCase().includes(apiSearch.toLowerCase()),
+  );
+
   // Export private local memory as JSON
   const handleExport = () => {
     const dataStr =
@@ -508,15 +1063,14 @@ function App() {
       setMemories([]);
       setRecoveryContact({ name: "", contact: "", relationship: "" });
       setCouncilSeats([null, null, null, null, null, null, null]);
-      setMessages([
-        {
-          id: "director-init",
-          role: "director",
-          text: "All local data has been forgotten. I am here to walk with you again.",
-        },
-      ]);
+      setMessages([]);
       setOnboarded(false);
       setOnboardingStep("welcome");
+      setAuthenticated(false);
+      setAuthEmail("");
+      setAuthPassword("");
+      setAuthConfirmPassword("");
+      setAuthError("");
       go("talk", "talk");
     }
   };
@@ -534,6 +1088,239 @@ function App() {
       return () => clearInterval(interval);
     }
   };
+
+  // Render Premium Auth Screen if unauthenticated
+  if (!authenticated) {
+    return (
+      <div className="app-container">
+        <main
+          className="phone-viewport"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            padding: "30px",
+          }}
+        >
+          <div className="ambient-photo" />
+          <div style={{ textAlign: "center", marginBottom: "30px", zIndex: 2 }}>
+            <Mark />
+            <h1
+              style={{
+                fontFamily: "var(--serif)",
+                fontSize: "36px",
+                margin: "16px 0 4px",
+                color: "var(--textPrimary)",
+              }}
+            >
+              Sayved
+            </h1>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "14px",
+                fontWeight: "600",
+                color: "var(--accentTaupeDark)",
+              }}
+            >
+              Encrypted Private Vault
+            </p>
+          </div>
+
+          <div
+            className="quiet-panel"
+            style={{
+              zIndex: 2,
+              padding: "20px",
+              background: "rgba(254, 253, 252, 0.94)",
+              borderRadius: "12px",
+              border: "1px solid var(--borderSoft)",
+              boxShadow: "0 12px 30px var(--shadowWarm)",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "18px",
+                marginTop: 0,
+                marginBottom: "16px",
+                textAlign: "center",
+                fontFamily: "var(--serif)",
+              }}
+            >
+              {authMode === "signin"
+                ? "Sign In to Vault"
+                : "Create Private Vault"}
+            </h2>
+
+            {authError && (
+              <div
+                style={{
+                  padding: "8px 12px",
+                  background: "rgba(167, 111, 91, 0.1)",
+                  border: "1px solid rgba(167, 111, 91, 0.2)",
+                  borderRadius: "6px",
+                  color: "var(--warningClay)",
+                  fontSize: "12px",
+                  marginBottom: "12px",
+                  lineHeight: "1.4",
+                }}
+              >
+                {authError}
+              </div>
+            )}
+
+            <div style={{ marginBottom: "12px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "var(--textSecondary)",
+                  marginBottom: "4px",
+                }}
+              >
+                Email Address
+              </label>
+              <input
+                type="email"
+                placeholder="E.g., name@domain.com"
+                value={authEmail}
+                onChange={(e) => setAuthEmail(e.target.value)}
+                style={{
+                  height: "40px",
+                  width: "100%",
+                  padding: "0 10px",
+                  background: "var(--surfaceCream)",
+                  border: "1px solid var(--borderSoft)",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  outline: "none",
+                  color: "var(--textPrimary)",
+                }}
+              />
+            </div>
+
+            <div
+              style={{ marginBottom: authMode === "signup" ? "12px" : "18px" }}
+            >
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: "var(--textSecondary)",
+                  marginBottom: "4px",
+                }}
+              >
+                Password
+              </label>
+              <input
+                type="password"
+                placeholder="Enter password"
+                value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                style={{
+                  height: "40px",
+                  width: "100%",
+                  padding: "0 10px",
+                  background: "var(--surfaceCream)",
+                  border: "1px solid var(--borderSoft)",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  outline: "none",
+                  color: "var(--textPrimary)",
+                }}
+              />
+            </div>
+
+            {authMode === "signup" && (
+              <div style={{ marginBottom: "18px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "11px",
+                    fontWeight: "600",
+                    color: "var(--textSecondary)",
+                    marginBottom: "4px",
+                  }}
+                >
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Repeat password"
+                  value={authConfirmPassword}
+                  onChange={(e) => setAuthConfirmPassword(e.target.value)}
+                  style={{
+                    height: "40px",
+                    width: "100%",
+                    padding: "0 10px",
+                    background: "var(--surfaceCream)",
+                    border: "1px solid var(--borderSoft)",
+                    borderRadius: "6px",
+                    fontSize: "14px",
+                    outline: "none",
+                    color: "var(--textPrimary)",
+                  }}
+                />
+              </div>
+            )}
+
+            <button
+              className="primary-button"
+              onClick={handleAuth}
+              style={{ width: "100%" }}
+            >
+              {authMode === "signin"
+                ? "Open Vault"
+                : "Create Private Key & Vault"}
+            </button>
+
+            <div style={{ marginTop: "16px", textAlign: "center" }}>
+              <button
+                onClick={() => {
+                  setAuthMode(authMode === "signin" ? "signup" : "signin");
+                  setAuthError("");
+                }}
+                style={{
+                  border: 0,
+                  background: "transparent",
+                  color: "var(--accentTaupeDark)",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                }}
+              >
+                {authMode === "signin"
+                  ? "Don't have a vault? Create one"
+                  : "Already have a vault? Sign in"}
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
+              zIndex: 2,
+              textAlign: "center",
+              marginTop: "24px",
+              color: "var(--textSecondary)",
+              fontSize: "11px",
+              lineHeight: "1.4",
+              padding: "0 10px",
+            }}
+          >
+            <LockKeyhole
+              size={14}
+              style={{ color: "var(--accentTaupe)", marginBottom: "4px" }}
+            />
+            <p style={{ margin: 0 }}>
+              All database values are scoped to your local security keys. We
+              hold no readable master passwords on servers.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   // Onboarding screens render before Tab system
   if (!onboarded) {
@@ -838,95 +1625,159 @@ function App() {
           </div>
 
           <div className="message-stack">
-            {messages.map((message) => (
-              <article
-                key={message.id}
-                className={
-                  message.role === "user" ? "user-message" : "director-card"
-                }
+            {/* Pristine stale state for chat screen */}
+            {messages.length === 0 ? (
+              <div
+                style={{
+                  padding: "40px 20px",
+                  textAlign: "center",
+                  color: "var(--textSecondary)",
+                }}
               >
-                {message.role === "director" && (
-                  <div className="director-head">
-                    <Mark small />
-                    <div>
-                      <strong>Sayved</strong>
-                      <span>Director voice</span>
-                    </div>
-                  </div>
-                )}
-                <p>{message.text}</p>
-
-                {/* 4. Scripture / Reference chip */}
-                {message.scripture && (
-                  <button
-                    className="scripture-chip"
-                    onClick={() => go("scripture", "talk")}
-                  >
-                    <BookOpen size={14} /> {scripture.reference}
-                  </button>
-                )}
-
-                {/* 7. Official Source Card */}
-                {message.source && (
-                  <SourceCard
-                    compact
-                    teacher={selectedTeacher}
-                    onOpen={() => go("source", "follow")}
-                    onRequest={() => go("request-confirm", "follow")}
-                  />
-                )}
-
-                {/* Surfaced Memory Thread Card */}
-                {message.memory && (
-                  <button
-                    className="memory-thread"
-                    onClick={() => go("memory", "walk")}
-                  >
-                    <Archive size={14} /> Connects to private Theme:{" "}
-                    {memories[0]?.title || "Fear of falling behind"}
-                  </button>
-                )}
-
-                {message.role === "director" && (
-                  <div className="listen-row">
-                    <button onClick={() => handleToggleAudio(message.id)}>
-                      {isPlayingAudio === message.id ? (
-                        <Pause size={14} />
-                      ) : (
-                        <Play size={14} />
-                      )}
-                    </button>
-                    <span>Listen reflection</span>
-                    <div
+                <Mark small style={{ marginBottom: "16px" }} />
+                <h2
+                  style={{
+                    fontFamily: "var(--serif)",
+                    fontSize: "20px",
+                    marginTop: "12px",
+                    color: "var(--textPrimary)",
+                  }}
+                >
+                  Start a new walk
+                </h2>
+                <p
+                  style={{
+                    fontSize: "13px",
+                    lineHeight: "1.6",
+                    margin: "8px 0 20px",
+                  }}
+                >
+                  You are starting a fresh walk. The Director is here with you.
+                  Ask a question or share what is on your heart below to begin
+                  your conversation.
+                </p>
+                <div
+                  style={{
+                    display: "grid",
+                    gap: "8px",
+                    maxWidth: "280px",
+                    margin: "0 auto",
+                  }}
+                >
+                  {[
+                    "I feel overwhelmed today",
+                    "Help me build a morning rhythm",
+                    "What does Scripture say about fear?",
+                  ].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      onClick={() => setComposer(suggestion)}
                       style={{
-                        flex: 1,
-                        height: "4px",
-                        background: "var(--borderSoft)",
-                        borderRadius: "2px",
-                        margin: "0 8px",
-                        position: "relative",
-                        overflow: "hidden",
+                        padding: "10px",
+                        fontSize: "12px",
+                        border: "1px solid var(--borderSoft)",
+                        borderRadius: "8px",
+                        background: "var(--surfaceWhite)",
+                        color: "var(--accentTaupeDark)",
+                        textAlign: "left",
                       }}
                     >
+                      "{suggestion}"
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              messages.map((message) => (
+                <article
+                  key={message.id}
+                  className={
+                    message.role === "user" ? "user-message" : "director-card"
+                  }
+                >
+                  {message.role === "director" && (
+                    <div className="director-head">
+                      <Mark small />
+                      <div>
+                        <strong>Sayved</strong>
+                        <span>Director voice</span>
+                      </div>
+                    </div>
+                  )}
+                  <p>{message.text}</p>
+
+                  {/* 4. Scripture / Reference chip */}
+                  {message.scripture && (
+                    <button
+                      className="scripture-chip"
+                      onClick={() => go("scripture", "talk")}
+                    >
+                      <BookOpen size={14} /> {scripture.reference}
+                    </button>
+                  )}
+
+                  {/* 7. Official Source Card */}
+                  {message.source && (
+                    <SourceCard
+                      compact
+                      teacher={selectedTeacher}
+                      onOpen={() => go("source", "follow")}
+                      onRequest={() => go("request-confirm", "follow")}
+                    />
+                  )}
+
+                  {/* Surfaced Memory Thread Card */}
+                  {message.memory && (
+                    <button
+                      className="memory-thread"
+                      onClick={() => go("memory", "walk")}
+                    >
+                      <Archive size={14} /> Connects to private Theme:{" "}
+                      {memories[0]?.title || "Fear of falling behind"}
+                    </button>
+                  )}
+
+                  {message.role === "director" && (
+                    <div className="listen-row">
+                      <button onClick={() => handleToggleAudio(message.id)}>
+                        {isPlayingAudio === message.id ? (
+                          <Pause size={14} />
+                        ) : (
+                          <Play size={14} />
+                        )}
+                      </button>
+                      <span>Listen reflection</span>
                       <div
                         style={{
-                          position: "absolute",
-                          left: 0,
-                          top: 0,
-                          height: "100%",
-                          width:
-                            isPlayingAudio === message.id
-                              ? `${audioProgress}%`
-                              : "0%",
-                          background: "var(--accentTaupe)",
-                          transition: "width 0.5s ease",
+                          flex: 1,
+                          height: "4px",
+                          background: "var(--borderSoft)",
+                          borderRadius: "2px",
+                          margin: "0 8px",
+                          position: "relative",
+                          overflow: "hidden",
                         }}
-                      />
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            top: 0,
+                            height: "100%",
+                            width:
+                              isPlayingAudio === message.id
+                                ? `${audioProgress}%`
+                                : "0%",
+                            background: "var(--accentTaupe)",
+                            transition: "width 0.5s ease",
+                          }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                )}
-              </article>
-            ))}
+                  )}
+                </article>
+              ))
+            )}
           </div>
 
           {/* Theological tool buttons to access compare/disputation */}
@@ -976,6 +1827,7 @@ function App() {
           title="Scripture"
           eyebrow="Grounding context"
           onBack={() => go("talk", "talk")}
+          go={go}
         >
           <article className="quiet-panel scripture-page">
             <Pill tone="olive">Referenced by Director</Pill>
@@ -1098,6 +1950,7 @@ function App() {
                 background: "transparent",
                 width: "100%",
                 fontSize: "14px",
+                color: "var(--textPrimary)",
               }}
             />
           </div>
@@ -1157,6 +2010,7 @@ function App() {
           title="Teacher Profile"
           eyebrow="Verification & Scope"
           onBack={() => go("follow", "follow")}
+          go={go}
         >
           <article className="teacher-profile" style={{ marginBottom: "16px" }}>
             <img src={selectedTeacher.image} alt={selectedTeacher.name} />
@@ -1219,6 +2073,7 @@ function App() {
           title="Source Player"
           eyebrow="Official routing player"
           onBack={() => go("follow", "follow")}
+          go={go}
         >
           <article className="player-card">
             <div
@@ -1391,6 +2246,7 @@ function App() {
           title="Request Submitted"
           eyebrow="Demand Signalling"
           onBack={() => go("teacher", "follow")}
+          go={go}
         >
           <div
             className="quiet-panel"
@@ -1431,6 +2287,7 @@ function App() {
           title="Council Builder"
           eyebrow="Assemble seven seats"
           onBack={() => go("follow", "follow")}
+          go={go}
         >
           <div
             style={{
@@ -1692,6 +2549,7 @@ function App() {
           title="Council Session"
           eyebrow="Director synthesis"
           onBack={() => go("talk", "talk")}
+          go={go}
         >
           <article className="director-card" style={{ marginBottom: "16px" }}>
             <div className="director-head">
@@ -1710,57 +2568,72 @@ function App() {
 
           <SectionTitle title="Council Contributions" />
           <div style={{ display: "grid", gap: "10px", marginBottom: "20px" }}>
-            {councilSeats
-              .map((id) => teachers.find((t) => t.id === id))
-              .filter(Boolean)
-              .map((t) => (
-                <div
-                  key={t.id}
-                  style={{
-                    padding: "12px",
-                    background: "var(--surfaceWhite)",
-                    borderRadius: "8px",
-                    border: "1px solid var(--borderSoft)",
-                  }}
-                >
+            {councilSeats.filter(Boolean).length === 0 ? (
+              <p
+                style={{
+                  textAlign: "center",
+                  padding: "20px",
+                  color: "var(--textSecondary)",
+                  fontSize: "13px",
+                  border: "1px dashed var(--borderSoft)",
+                  borderRadius: "8px",
+                }}
+              >
+                No teachers are currently seated in your Council.
+              </p>
+            ) : (
+              councilSeats
+                .map((id) => teachers.find((t) => t.id === id))
+                .filter(Boolean)
+                .map((t) => (
                   <div
+                    key={t.id}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "6px",
+                      padding: "12px",
+                      background: "var(--surfaceWhite)",
+                      borderRadius: "8px",
+                      border: "1px solid var(--borderSoft)",
                     }}
                   >
-                    <strong style={{ fontSize: "13px" }}>{t.name}</strong>
-                    <Pill tone="beige">{t.type}</Pill>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      <strong style={{ fontSize: "13px" }}>{t.name}</strong>
+                      <Pill tone="beige">{t.type}</Pill>
+                    </div>
+                    <p
+                      style={{
+                        margin: "0 0 8px",
+                        fontSize: "12px",
+                        color: "var(--textSecondary)",
+                        lineHeight: "1.4",
+                      }}
+                    >
+                      Sermon content references public themes of trust, divine
+                      order, and daily prayer steps.
+                    </p>
+                    <button
+                      className="quiet-button"
+                      style={{
+                        minHeight: "28px",
+                        fontSize: "11px",
+                        width: "100%",
+                      }}
+                      onClick={() => {
+                        setSelectedTeacher(t);
+                        go("source", "follow");
+                      }}
+                    >
+                      <Play size={10} /> Open Official Route
+                    </button>
                   </div>
-                  <p
-                    style={{
-                      margin: "0 0 8px",
-                      fontSize: "12px",
-                      color: "var(--textSecondary)",
-                      lineHeight: "1.4",
-                    }}
-                  >
-                    Sermon content references public themes of trust, divine
-                    order, and daily prayer steps.
-                  </p>
-                  <button
-                    className="quiet-button"
-                    style={{
-                      minHeight: "28px",
-                      fontSize: "11px",
-                      width: "100%",
-                    }}
-                    onClick={() => {
-                      setSelectedTeacher(t);
-                      go("source", "follow");
-                    }}
-                  >
-                    <Play size={10} /> Open Official Route
-                  </button>
-                </div>
-              ))}
+                ))
+            )}
           </div>
 
           <InfoBlock
@@ -1777,6 +2650,7 @@ function App() {
           title="Compare Teachings"
           eyebrow="Theological review"
           onBack={() => go("talk", "talk")}
+          go={go}
         >
           <div
             style={{
@@ -1938,6 +2812,7 @@ function App() {
           title="Disputation"
           eyebrow="Structured debate"
           onBack={() => go("talk", "talk")}
+          go={go}
         >
           <div className="quiet-panel" style={{ marginBottom: "16px" }}>
             <h2 style={{ fontSize: "18px" }}>The Disputation Discipline</h2>
@@ -2029,6 +2904,14 @@ function App() {
                   marginTop: 0,
                 }}
                 onClick={handleExport}
+                disabled={memories.length === 0}
+                style={{
+                  flex: 1,
+                  minHeight: "36px",
+                  fontSize: "12px",
+                  marginTop: 0,
+                  opacity: memories.length === 0 ? 0.5 : 1,
+                }}
               >
                 <Download size={13} /> Export Backup
               </button>
@@ -2073,42 +2956,69 @@ function App() {
           </div>
 
           <div className="memory-list" style={{ marginBottom: "20px" }}>
-            {memories.map((item) => (
-              <button
-                key={item.id}
-                className="memory-card"
-                onClick={() => {
-                  setSelectedMemory(item);
-                  go("memory-detail", "walk");
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Pill>{item.type}</Pill>
-                  <span style={{ fontSize: "11px", color: "var(--textMuted)" }}>
-                    {item.source}
-                  </span>
-                </div>
-                <h3>{item.title}</h3>
-                <p>{item.body.slice(0, 72)}...</p>
-              </button>
-            ))}
-            {memories.length === 0 && (
-              <p
+            {/* Stale State: memories empty */}
+            {memories.length === 0 ? (
+              <div
                 style={{
+                  padding: "30px 16px",
+                  border: "1px dashed var(--borderSoft)",
+                  borderRadius: "8px",
+                  background: "rgba(254,253,252,0.5)",
                   textAlign: "center",
                   color: "var(--textSecondary)",
-                  fontSize: "13px",
-                  padding: "16px",
                 }}
               >
-                No memories stored locally yet.
-              </p>
+                <Archive
+                  size={28}
+                  style={{
+                    color: "var(--textMuted)",
+                    marginBottom: "8px",
+                    margin: "0 auto",
+                  }}
+                />
+                <h3
+                  style={{
+                    margin: "6px 0",
+                    fontSize: "14px",
+                    color: "var(--textPrimary)",
+                  }}
+                >
+                  Your Memory Vault is empty
+                </h3>
+                <p style={{ margin: 0, fontSize: "12px", lineHeight: "1.5" }}>
+                  As you share what is on your heart in the Talk tab, the
+                  Director will locally note private themes, commitments, and
+                  strengths to support your walk.
+                </p>
+              </div>
+            ) : (
+              memories.map((item) => (
+                <button
+                  key={item.id}
+                  className="memory-card"
+                  onClick={() => {
+                    setSelectedMemory(item);
+                    go("memory-detail", "walk");
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Pill>{item.type}</Pill>
+                    <span
+                      style={{ fontSize: "11px", color: "var(--textMuted)" }}
+                    >
+                      {item.source}
+                    </span>
+                  </div>
+                  <h3>{item.title}</h3>
+                  <p>{item.body.slice(0, 72)}...</p>
+                </button>
+              ))
             )}
           </div>
 
@@ -2175,6 +3085,7 @@ function App() {
           title="The Well"
           eyebrow="A daily feed that ends"
           onBack={() => go("walk", "walk")}
+          go={go}
         >
           <div
             style={{
@@ -2229,7 +3140,11 @@ function App() {
           <WellItem
             icon={<Archive size={16} />}
             title="Connecting Memory"
-            text="Gently links to your focus to pause quiet rhythm before making rush decisions."
+            text={
+              memories.length > 0
+                ? `Links to Theme: ${memories[0].title}`
+                : "Memory Vault is clean; no connections today."
+            }
             onClick={() => go("memory", "walk")}
           />
 
@@ -2245,6 +3160,7 @@ function App() {
           title="Today's Devotion"
           eyebrow="Good Morning"
           onBack={() => go("walk", "walk")}
+          go={go}
         >
           <article className="devotion-page" style={{ position: "relative" }}>
             <span>Reflection of the Day</span>
@@ -2377,158 +3293,179 @@ function App() {
       {screen === "memory-detail" && (
         <Detail
           title="Memory Detail"
-          eyebrow={selectedMemory.type}
+          eyebrow={selectedMemory?.type || "Memory"}
           onBack={() => go("memory", "walk")}
+          go={go}
         >
-          <article className="quiet-panel" style={{ padding: "20px" }}>
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "11px",
-                  fontWeight: "600",
-                  color: "var(--textSecondary)",
-                  marginBottom: "4px",
-                }}
-              >
-                Memory Category
-              </label>
-              <select
-                value={selectedMemory.type}
-                onChange={(e) => {
-                  const updated = { ...selectedMemory, type: e.target.value };
-                  setSelectedMemory(updated);
-                  setMemories(
-                    memories.map((m) =>
-                      m.id === selectedMemory.id ? updated : m,
-                    ),
-                  );
-                }}
-                style={{
-                  height: "36px",
-                  width: "100%",
-                  background: "var(--surfaceWhite)",
-                  border: "1px solid var(--borderSoft)",
-                  borderRadius: "6px",
-                  fontSize: "13px",
-                  padding: "0 8px",
-                }}
-              >
-                {[
-                  "Theme",
-                  "Facts",
-                  "Strengths",
-                  "Commitment",
-                  "Spiritual Marker",
-                ].map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {selectedMemory ? (
+            <>
+              <article className="quiet-panel" style={{ padding: "20px" }}>
+                <div style={{ marginBottom: "16px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "11px",
+                      fontWeight: "600",
+                      color: "var(--textSecondary)",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Memory Category
+                  </label>
+                  <select
+                    value={selectedMemory.type}
+                    onChange={(e) => {
+                      const updated = {
+                        ...selectedMemory,
+                        type: e.target.value,
+                      };
+                      setSelectedMemory(updated);
+                      setMemories(
+                        memories.map((m) =>
+                          m.id === selectedMemory.id ? updated : m,
+                        ),
+                      );
+                    }}
+                    style={{
+                      height: "36px",
+                      width: "100%",
+                      background: "var(--surfaceWhite)",
+                      border: "1px solid var(--borderSoft)",
+                      borderRadius: "6px",
+                      fontSize: "13px",
+                      padding: "0 8px",
+                      color: "var(--textPrimary)",
+                    }}
+                  >
+                    {[
+                      "Theme",
+                      "Facts",
+                      "Strengths",
+                      "Commitment",
+                      "Spiritual Marker",
+                    ].map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "11px",
-                  fontWeight: "600",
-                  color: "var(--textSecondary)",
-                  marginBottom: "4px",
-                }}
-              >
-                Title
-              </label>
-              <input
-                type="text"
-                value={selectedMemory.title}
-                onChange={(e) => {
-                  const updated = { ...selectedMemory, title: e.target.value };
-                  setSelectedMemory(updated);
-                  setMemories(
-                    memories.map((m) =>
-                      m.id === selectedMemory.id ? updated : m,
-                    ),
-                  );
-                }}
-                style={{
-                  height: "36px",
-                  width: "100%",
-                  background: "var(--surfaceWhite)",
-                  border: "1px solid var(--borderSoft)",
-                  borderRadius: "6px",
-                  fontSize: "13px",
-                  padding: "0 8px",
-                }}
-              />
-            </div>
+                <div style={{ marginBottom: "16px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "11px",
+                      fontWeight: "600",
+                      color: "var(--textSecondary)",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedMemory.title}
+                    onChange={(e) => {
+                      const updated = {
+                        ...selectedMemory,
+                        title: e.target.value,
+                      };
+                      setSelectedMemory(updated);
+                      setMemories(
+                        memories.map((m) =>
+                          m.id === selectedMemory.id ? updated : m,
+                        ),
+                      );
+                    }}
+                    style={{
+                      height: "36px",
+                      width: "100%",
+                      background: "var(--surfaceWhite)",
+                      border: "1px solid var(--borderSoft)",
+                      borderRadius: "6px",
+                      fontSize: "13px",
+                      padding: "0 8px",
+                      color: "var(--textPrimary)",
+                    }}
+                  />
+                </div>
 
-            <div style={{ marginBottom: "12px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "11px",
-                  fontWeight: "600",
-                  color: "var(--textSecondary)",
-                  marginBottom: "4px",
-                }}
-              >
-                Reflections
-              </label>
-              <textarea
-                value={selectedMemory.body}
-                onChange={(e) => {
-                  const updated = { ...selectedMemory, body: e.target.value };
-                  setSelectedMemory(updated);
-                  setMemories(
-                    memories.map((m) =>
-                      m.id === selectedMemory.id ? updated : m,
-                    ),
-                  );
-                }}
-                style={{
-                  width: "100%",
-                  minHeight: "100px",
-                  padding: "8px",
-                  background: "var(--surfaceWhite)",
-                  border: "1px solid var(--borderSoft)",
-                  borderRadius: "6px",
-                  fontSize: "13px",
-                  lineHeight: "1.5",
-                  resize: "none",
-                }}
-              />
-            </div>
+                <div style={{ marginBottom: "12px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "11px",
+                      fontWeight: "600",
+                      color: "var(--textSecondary)",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    Reflections
+                  </label>
+                  <textarea
+                    value={selectedMemory.body}
+                    onChange={(e) => {
+                      const updated = {
+                        ...selectedMemory,
+                        body: e.target.value,
+                      };
+                      setSelectedMemory(updated);
+                      setMemories(
+                        memories.map((m) =>
+                          m.id === selectedMemory.id ? updated : m,
+                        ),
+                      );
+                    }}
+                    style={{
+                      width: "100%",
+                      minHeight: "100px",
+                      padding: "8px",
+                      background: "var(--surfaceWhite)",
+                      border: "1px solid var(--borderSoft)",
+                      borderRadius: "6px",
+                      fontSize: "13px",
+                      lineHeight: "1.5",
+                      resize: "none",
+                      color: "var(--textPrimary)",
+                    }}
+                  />
+                </div>
 
-            <span style={{ fontSize: "11px", color: "var(--textMuted)" }}>
-              Source: {selectedMemory.source}
-            </span>
-          </article>
+                <span style={{ fontSize: "11px", color: "var(--textMuted)" }}>
+                  Source: {selectedMemory.source}
+                </span>
+              </article>
 
-          <div className="action-grid" style={{ marginTop: "16px" }}>
-            <button
-              onClick={() => {
-                alert("Changes saved locally");
-                go("memory", "walk");
-              }}
-            >
-              <Check size={16} /> Save Changes
-            </button>
-            <button
-              style={{
-                color: "var(--warningClay)",
-                background: "rgba(167, 111, 91, 0.08)",
-              }}
-              onClick={() => {
-                setMemories(memories.filter((m) => m.id !== selectedMemory.id));
-                alert("Memory forgotten and removed from device");
-                go("memory", "walk");
-              }}
-            >
-              <Trash2 size={16} /> Forget Memory
-            </button>
-          </div>
+              <div className="action-grid" style={{ marginTop: "16px" }}>
+                <button
+                  onClick={() => {
+                    alert("Changes saved locally");
+                    go("memory", "walk");
+                  }}
+                >
+                  <Check size={16} /> Save Changes
+                </button>
+                <button
+                  style={{
+                    color: "var(--warningClay)",
+                    background: "rgba(167, 111, 91, 0.08)",
+                  }}
+                  onClick={() => {
+                    setMemories(
+                      memories.filter((m) => m.id !== selectedMemory.id),
+                    );
+                    alert("Memory forgotten and removed from device");
+                    go("memory", "walk");
+                  }}
+                >
+                  <Trash2 size={16} /> Forget Memory
+                </button>
+              </div>
+            </>
+          ) : (
+            <p>No memory selected.</p>
+          )}
         </Detail>
       )}
 
@@ -2538,6 +3475,7 @@ function App() {
           title="Autobiography"
           eyebrow="narrative feedback"
           onBack={() => go("memory", "walk")}
+          go={go}
         >
           <article
             className="quiet-panel"
@@ -2549,41 +3487,69 @@ function App() {
               justifyContent: "space-between",
             }}
           >
-            <div>
-              <Pill tone="olive">Day 90 preview</Pill>
-              <h2
-                style={{
-                  fontSize: "22px",
-                  marginTop: "12px",
-                  borderBottom: "1px solid var(--borderSoft)",
-                  paddingBottom: "12px",
-                }}
-              >
-                The story Sayved is learning with you
-              </h2>
-              <p
-                style={{
-                  fontSize: "14px",
-                  lineHeight: "1.65",
-                  color: "var(--textPrimary)",
-                  marginTop: "16px",
-                }}
-              >
-                You are becoming someone who pauses before panic. Your records
-                show a steady movement away from rushing when life feels fast,
-                grounding decisions in short morning reflections.
-              </p>
-              <p
-                style={{
-                  fontSize: "14px",
-                  lineHeight: "1.65",
-                  color: "var(--textPrimary)",
-                }}
-              >
-                You have returned to Psalm 119 repeatedly, seeking light for the
-                next step rather than demands for a full blueprint.
-              </p>
-            </div>
+            {memories.length === 0 ? (
+              <div>
+                <Pill tone="olive">Day 90 preview</Pill>
+                <h2
+                  style={{
+                    fontSize: "22px",
+                    marginTop: "12px",
+                    borderBottom: "1px solid var(--borderSoft)",
+                    paddingBottom: "12px",
+                  }}
+                >
+                  Pristine Slate
+                </h2>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    lineHeight: "1.65",
+                    color: "var(--textPrimary)",
+                    marginTop: "16px",
+                  }}
+                >
+                  Sayved has not gathered enough private themes to compile an
+                  autobiography. Continue your walk to build your narrative
+                  record.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <Pill tone="olive">Day 90 preview</Pill>
+                <h2
+                  style={{
+                    fontSize: "22px",
+                    marginTop: "12px",
+                    borderBottom: "1px solid var(--borderSoft)",
+                    paddingBottom: "12px",
+                  }}
+                >
+                  The story Sayved is learning with you
+                </h2>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    lineHeight: "1.65",
+                    color: "var(--textPrimary)",
+                    marginTop: "16px",
+                  }}
+                >
+                  You are becoming someone who pauses before panic. Your records
+                  show a steady movement away from rushing when life feels fast,
+                  grounding decisions in short morning reflections.
+                </p>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    lineHeight: "1.65",
+                    color: "var(--textPrimary)",
+                  }}
+                >
+                  You have returned to Psalm 119 repeatedly, seeking light for
+                  the next step rather than demands for a full blueprint.
+                </p>
+              </div>
+            )}
             <span
               style={{
                 display: "block",
@@ -2614,6 +3580,7 @@ function App() {
           title="Echo Capture"
           eyebrow="Sunday sermon capture"
           onBack={() => go("walk", "walk")}
+          go={go}
         >
           <article className="capture-card" style={{ padding: "30px 20px" }}>
             <div
@@ -2741,136 +3708,185 @@ function App() {
           title="Echo Rhythm"
           eyebrow="Monday to Saturday anchors"
           onBack={() => go("walk", "walk")}
+          go={go}
         >
-          <div
-            style={{
-              marginBottom: "16px",
-              padding: "12px",
-              background: "var(--surfaceCream)",
-              borderRadius: "8px",
-              border: "1px solid var(--borderSoft)",
-            }}
-          >
-            <strong
+          {/* Stale State: rhythm empty if no captured sermons */}
+          {capturedSermons.length === 0 ? (
+            <div
               style={{
-                fontSize: "13px",
-                display: "block",
-                marginBottom: "4px",
-              }}
-            >
-              Sermon Anchor generated:
-            </strong>
-            <p
-              style={{
-                margin: 0,
-                fontSize: "12px",
+                padding: "40px 20px",
+                textAlign: "center",
                 color: "var(--textSecondary)",
-                lineHeight: "1.4",
+                border: "1px dashed var(--borderSoft)",
+                borderRadius: "8px",
               }}
             >
-              Focus on quiet obedience, softening the soil, and avoiding
-              performance pressures.
-            </p>
-          </div>
-
-          <div style={{ display: "grid", gap: "8px", marginBottom: "20px" }}>
-            {[
-              {
-                day: "Monday anchor verse",
-                task: "Read Luke 8:15 and reflect for 2 mins.",
-              },
-              {
-                day: "Tuesday memory thread",
-                task: "Review your theme: fear of falling behind.",
-              },
-              {
-                day: "Wednesday practice",
-                task: "Pause 2 minutes before making major decisions today.",
-              },
-              {
-                day: "Thursday deeper reflection",
-                task: "Consider which expectations are yours or external.",
-              },
-              {
-                day: "Friday examen",
-                task: "Note down where you felt the soil of the heart soften.",
-              },
-              {
-                day: "Saturday preparation",
-                task: "Quiet evening prep for tomorrow's community worship.",
-              },
-            ].map((item, idx) => {
-              const isCompleted = completedRhythmDays.includes(idx);
-              return (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    if (isCompleted) {
-                      setCompletedRhythmDays(
-                        completedRhythmDays.filter((i) => i !== idx),
-                      );
-                    } else {
-                      setCompletedRhythmDays([...completedRhythmDays, idx]);
-                    }
-                  }}
-                  className="list-row"
+              <Radio
+                size={32}
+                style={{
+                  color: "var(--textMuted)",
+                  marginBottom: "8px",
+                  margin: "0 auto",
+                }}
+              />
+              <h3 style={{ fontSize: "15px", color: "var(--textPrimary)" }}>
+                No sermon anchors active
+              </h3>
+              <p
+                style={{
+                  fontSize: "13px",
+                  lineHeight: "1.5",
+                  margin: "6px 0 16px",
+                }}
+              >
+                Capture your Sunday sermon to generate a personalized
+                Monday-Saturday spiritual embodiment rhythm.
+              </p>
+              <button
+                className="primary-button"
+                onClick={() => go("echo", "walk")}
+              >
+                Open Sermon Capture
+              </button>
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  marginBottom: "16px",
+                  padding: "12px",
+                  background: "var(--surfaceCream)",
+                  borderRadius: "8px",
+                  border: "1px solid var(--borderSoft)",
+                }}
+              >
+                <strong
                   style={{
-                    width: "100%",
-                    display: "grid",
-                    gridTemplateColumns: "24px 1fr 24px",
-                    alignItems: "center",
-                    textAlign: "left",
-                    background: isCompleted
-                      ? "rgba(123, 130, 102, 0.08)"
-                      : "var(--surfaceWhite)",
-                    border: "1px solid var(--borderSoft)",
-                    borderRadius: "8px",
+                    fontSize: "13px",
+                    display: "block",
                     marginBottom: "4px",
-                    minHeight: "54px",
                   }}
                 >
-                  <div style={{ display: "grid", placeItems: "center" }}>
-                    {isCompleted ? (
-                      <Check
-                        size={16}
-                        style={{ color: "var(--successOlive)" }}
+                  Sermon Anchor generated:
+                </strong>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "12px",
+                    color: "var(--textSecondary)",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  Focus on quiet obedience, softening the soil, and avoiding
+                  performance pressures.
+                </p>
+              </div>
+
+              <div
+                style={{ display: "grid", gap: "8px", marginBottom: "20px" }}
+              >
+                {[
+                  {
+                    day: "Monday anchor verse",
+                    task: "Read Luke 8:15 and reflect for 2 mins.",
+                  },
+                  {
+                    day: "Tuesday memory thread",
+                    task: "Review your Theme: fear of falling behind.",
+                  },
+                  {
+                    day: "Wednesday practice",
+                    task: "Pause 2 minutes before making major decisions today.",
+                  },
+                  {
+                    day: "Thursday deeper reflection",
+                    task: "Consider which expectations are yours or external.",
+                  },
+                  {
+                    day: "Friday examen",
+                    task: "Note down where you felt the soil of the heart soften.",
+                  },
+                  {
+                    day: "Saturday preparation",
+                    task: "Quiet evening prep for tomorrow's community worship.",
+                  },
+                ].map((item, idx) => {
+                  const isCompleted = completedRhythmDays.includes(idx);
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        if (isCompleted) {
+                          setCompletedRhythmDays(
+                            completedRhythmDays.filter((i) => i !== idx),
+                          );
+                        } else {
+                          setCompletedRhythmDays([...completedRhythmDays, idx]);
+                        }
+                      }}
+                      className="list-row"
+                      style={{
+                        width: "100%",
+                        display: "grid",
+                        gridTemplateColumns: "24px 1fr 24px",
+                        alignItems: "center",
+                        textAlign: "left",
+                        background: isCompleted
+                          ? "rgba(123, 130, 102, 0.08)"
+                          : "var(--surfaceWhite)",
+                        border: "1px solid var(--borderSoft)",
+                        borderRadius: "8px",
+                        marginBottom: "4px",
+                        minHeight: "54px",
+                      }}
+                    >
+                      <div style={{ display: "grid", placeItems: "center" }}>
+                        {isCompleted ? (
+                          <Check
+                            size={16}
+                            style={{ color: "var(--successOlive)" }}
+                          />
+                        ) : (
+                          <Circle
+                            size={16}
+                            style={{ color: "var(--textMuted)" }}
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <strong
+                          style={{
+                            fontSize: "12px",
+                            display: "block",
+                            color: isCompleted
+                              ? "var(--successOlive)"
+                              : "var(--textPrimary)",
+                          }}
+                        >
+                          {item.day}
+                        </strong>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            color: "var(--textSecondary)",
+                          }}
+                        >
+                          {item.task}
+                        </span>
+                      </div>
+                      <ChevronLeft
+                        size={14}
+                        style={{
+                          transform: "rotate(180deg)",
+                          color: "var(--textMuted)",
+                        }}
                       />
-                    ) : (
-                      <Circle size={16} style={{ color: "var(--textMuted)" }} />
-                    )}
-                  </div>
-                  <div>
-                    <strong
-                      style={{
-                        fontSize: "12px",
-                        display: "block",
-                        color: isCompleted
-                          ? "var(--successOlive)"
-                          : "var(--textPrimary)",
-                      }}
-                    >
-                      {item.day}
-                    </strong>
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        color: "var(--textSecondary)",
-                      }}
-                    >
-                      {item.task}
-                    </span>
-                  </div>
-                  <ChevronLeft
-                    size={14}
-                    style={{
-                      transform: "rotate(180deg)",
-                      color: "var(--textMuted)",
-                    }}
-                  />
-                </button>
-              );
-            })}
-          </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </Detail>
       )}
 
@@ -2880,6 +3896,7 @@ function App() {
           title="Bible Reader"
           eyebrow="scripture search"
           onBack={() => go("walk", "walk")}
+          go={go}
         >
           <div className="search-box">
             <Search size={17} />
@@ -2894,6 +3911,7 @@ function App() {
                 background: "transparent",
                 width: "100%",
                 fontSize: "14px",
+                color: "var(--textPrimary)",
               }}
             />
           </div>
@@ -2977,6 +3995,7 @@ function App() {
           title="Recovery Setup"
           eyebrow="Two-person memory recovery"
           onBack={() => go("walk", "walk")}
+          go={go}
         >
           <div
             className="quiet-panel"
@@ -3003,6 +4022,7 @@ function App() {
             </p>
           </div>
 
+          {/* Stale state presentation for recovery setup */}
           <div
             style={{
               background: "var(--surfaceWhite)",
@@ -3012,6 +4032,22 @@ function App() {
               marginBottom: "16px",
             }}
           >
+            {!recoveryContact.name && (
+              <div
+                style={{
+                  padding: "8px 12px",
+                  background: "rgba(183, 154, 115, 0.08)",
+                  border: "1px solid rgba(183, 154, 115, 0.15)",
+                  borderRadius: "6px",
+                  fontSize: "11px",
+                  color: "var(--accentTaupeDark)",
+                  marginBottom: "12px",
+                }}
+              >
+                No recovery contact active. We recommend setting one up for
+                emergency vault retrieval.
+              </div>
+            )}
             <div style={{ marginBottom: "12px" }}>
               <label
                 style={{
@@ -3040,6 +4076,7 @@ function App() {
                   background: "var(--surfaceCream)",
                   border: "1px solid var(--borderSoft)",
                   borderRadius: "6px",
+                  color: "var(--textPrimary)",
                 }}
               />
             </div>
@@ -3071,6 +4108,7 @@ function App() {
                   background: "var(--surfaceCream)",
                   border: "1px solid var(--borderSoft)",
                   borderRadius: "6px",
+                  color: "var(--textPrimary)",
                 }}
               />
             </div>
@@ -3102,6 +4140,7 @@ function App() {
                   background: "var(--surfaceCream)",
                   border: "1px solid var(--borderSoft)",
                   borderRadius: "6px",
+                  color: "var(--textPrimary)",
                 }}
               />
             </div>
@@ -3129,6 +4168,7 @@ function App() {
           title="Pastor Dashboard"
           eyebrow="Future church preview"
           onBack={() => go("walk", "walk")}
+          go={go}
         >
           <div
             className="quiet-panel"
@@ -3258,6 +4298,7 @@ function App() {
           title="Settings"
           eyebrow="Privacy & Legal settings"
           onBack={() => go("walk", "walk")}
+          go={go}
         >
           <div
             style={{
@@ -3277,7 +4318,11 @@ function App() {
             </div>
             <div
               className="list-row"
-              style={{ display: "flex", justifyContent: "space-between" }}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                cursor: "pointer",
+              }}
               onClick={() => {
                 const newRhythm = notificationRhythm.includes("Daily")
                   ? "Weekly anchor only"
@@ -3291,22 +4336,45 @@ function App() {
             </div>
             <div
               className="list-row"
-              style={{ display: "flex", justifyContent: "space-between" }}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                cursor: "pointer",
+              }}
               onClick={handleExport}
             >
               <span>Export Private Vault (JSON backup)</span>
               <Download size={14} style={{ color: "var(--accentTaupe)" }} />
             </div>
+
+            {/* Interactive Swagger UI Trigger */}
+            <div
+              className="list-row"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                cursor: "pointer",
+                background: "rgba(123, 130, 102, 0.04)",
+              }}
+              onClick={() => go("swagger", "walk")}
+            >
+              <span style={{ color: "var(--successOlive)", fontWeight: "600" }}>
+                Developer API Console (Swagger UI)
+              </span>
+              <Sparkles size={14} style={{ color: "var(--successOlive)" }} />
+            </div>
+
             <div
               className="list-row"
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 color: "var(--warningClay)",
+                cursor: "pointer",
               }}
               onClick={handleDeleteAllData}
             >
-              <span>Forget private memory data</span>
+              <span>Forget private memory & log out</span>
               <Trash2 size={14} />
             </div>
           </div>
@@ -3366,6 +4434,212 @@ function App() {
                 </p>
               </div>
             ))}
+          </div>
+        </Detail>
+      )}
+
+      {/* Interactive Swagger UI Dashboard */}
+      {screen === "swagger" && (
+        <Detail
+          title="Swagger API Console"
+          eyebrow="Interactive Edge Specifications"
+          onBack={() => go("settings", "walk")}
+          go={go}
+        >
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "12px",
+              background: "rgba(123, 130, 102, 0.08)",
+              borderRadius: "8px",
+              border: "1px solid rgba(123, 130, 102, 0.15)",
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                fontSize: "11px",
+                lineHeight: "1.5",
+                color: "var(--successOlive)",
+              }}
+            >
+              <strong>API Console</strong>: Inspect and execute live request
+              payloads against simulated Supabase Edge Function endpoints
+              according to Sayved specification.
+            </p>
+          </div>
+
+          <div className="search-box">
+            <Search size={17} />
+            <input
+              type="text"
+              placeholder="Search paths or methods..."
+              value={apiSearch}
+              onChange={(e) => setApiSearch(e.target.value)}
+              style={{
+                border: 0,
+                outline: 0,
+                background: "transparent",
+                width: "100%",
+                fontSize: "14px",
+                color: "var(--textPrimary)",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "grid", gap: "10px", marginBottom: "20px" }}>
+            {filteredEndpoints.map((endpoint) => {
+              const isOpen = activeEndpoint === endpoint.id;
+              const hasPayload = endpoint.payload !== null;
+              const responseValue = endpointResponses[endpoint.id];
+              const isLoading = endpointLoading[endpoint.id];
+
+              return (
+                <div key={endpoint.id} className="endpoint-row">
+                  <div
+                    className="endpoint-header"
+                    onClick={() =>
+                      setActiveEndpoint(isOpen ? null : endpoint.id)
+                    }
+                  >
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <span
+                        className={`method-badge ${endpoint.method.toLowerCase()}`}
+                      >
+                        {endpoint.method}
+                      </span>
+                      <strong
+                        style={{
+                          fontSize: "12px",
+                          fontFamily: "monospace",
+                          color: "var(--textPrimary)",
+                        }}
+                      >
+                        {endpoint.path}
+                      </strong>
+                    </div>
+                    <ChevronLeft
+                      size={14}
+                      style={{
+                        transform: isOpen ? "rotate(270deg)" : "rotate(180deg)",
+                        color: "var(--textMuted)",
+                        transition: "transform 0.18s",
+                      }}
+                    />
+                  </div>
+
+                  {isOpen && (
+                    <div className="endpoint-body">
+                      <p
+                        style={{
+                          margin: "0 0 12px",
+                          fontSize: "12px",
+                          color: "var(--textSecondary)",
+                          lineHeight: "1.4",
+                        }}
+                      >
+                        {endpoint.description}
+                      </p>
+
+                      {hasPayload && (
+                        <div style={{ marginBottom: "14px" }}>
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: "10px",
+                              fontWeight: "700",
+                              textTransform: "uppercase",
+                              color: "var(--textSecondary)",
+                              marginBottom: "4px",
+                            }}
+                          >
+                            Request Payload (JSON)
+                          </label>
+                          <textarea
+                            className="swagger-textarea"
+                            value={
+                              endpointInputs[endpoint.id] !== undefined
+                                ? endpointInputs[endpoint.id]
+                                : JSON.stringify(endpoint.payload, null, 2)
+                            }
+                            onChange={(e) =>
+                              setEndpointInputs({
+                                ...endpointInputs,
+                                [endpoint.id]: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      )}
+
+                      <button
+                        className="primary-button"
+                        style={{
+                          width: "100%",
+                          minHeight: "36px",
+                          fontSize: "12px",
+                        }}
+                        onClick={() => executeEndpoint(endpoint)}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Executing..." : "Execute API Request"}
+                      </button>
+
+                      {responseValue && (
+                        <div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginTop: "14px",
+                            }}
+                          >
+                            <label
+                              style={{
+                                fontSize: "10px",
+                                fontWeight: "700",
+                                textTransform: "uppercase",
+                                color: "var(--textSecondary)",
+                              }}
+                            >
+                              Server Response Payload
+                            </label>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(responseValue);
+                                alert("Copied response payload");
+                              }}
+                              style={{
+                                border: 0,
+                                background: "transparent",
+                                color: "var(--accentTaupe)",
+                                fontSize: "11px",
+                                fontWeight: "600",
+                              }}
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <pre className="swagger-pre">{responseValue}</pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {filteredEndpoints.length === 0 && (
+              <p
+                style={{
+                  textAlign: "center",
+                  color: "var(--textSecondary)",
+                  fontSize: "13px",
+                }}
+              >
+                No endpoints match your query.
+              </p>
+            )}
           </div>
         </Detail>
       )}
