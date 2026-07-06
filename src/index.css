@@ -67,13 +67,17 @@ button {
   flex-direction: column;
   background: var(--backgroundIvory);
   border-radius: 38px;
-  box-shadow: 0 24px 70px rgba(32, 31, 31, 0.22), 0 0 0 1px rgba(32, 31, 31, 0.05);
+  box-shadow:
+    0 24px 70px rgba(32, 31, 31, 0.22),
+    0 0 0 1px rgba(32, 31, 31, 0.05);
 }
 
 .ambient-photo {
   position: absolute;
   inset: 0;
-  background: linear-gradient(rgba(248, 245, 241, 0.82), rgba(248, 245, 241, 0.96)), url("/assets/sayved_main_background.jpg");
+  background:
+    linear-gradient(rgba(248, 245, 241, 0.82), rgba(248, 245, 241, 0.96)),
+    url("/assets/sayved_main_background.jpg");
   background-size: cover;
   background-position: center top;
   opacity: 0.88;
@@ -138,7 +142,10 @@ button {
   place-items: center;
   align-content: center;
   gap: 3px;
-  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
 }
 
 .bottom-nav button span {
