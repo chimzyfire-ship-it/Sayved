@@ -3483,4 +3483,25 @@ function ToolButton({ icon, title, text, onClick }) {
   );
 }
 
+function SectionTitle({ title, action }) {
+  return (
+    <div className="section-title">
+      <h2>{title}</h2>
+      {action && <span>{action}</span>}
+    </div>
+  );
+}
+
+function InfoBlock({ icon, title, text }) {
+  return (
+    <article className="info-block">
+      <div style={{ color: "var(--accentTaupeDark)" }}>{icon}</div>
+      <section>
+        <h3 style={{ fontSize: "13px", margin: "0 0 2px" }}>{title}</h3>
+        <p style={{ margin: 0, fontSize: "12px", lineHeight: "1.4" }}>{text}</p>
+      </section>
+    </article>
+  );
+}
+
 export default App;
