@@ -163,7 +163,10 @@ function TopBar({ title, eyebrow, onBack, action, go }) {
         <strong>{title}</strong>
       </div>
       {action || (
-        <IconButton label="Settings" onClick={() => go("settings", "walk")}>
+        <IconButton
+          label="Settings"
+          onClick={() => go && go("settings", "walk")}
+        >
           <Settings size={18} />
         </IconButton>
       )}
@@ -3411,10 +3414,10 @@ function Shell({
   );
 }
 
-function Detail({ title, eyebrow, onBack, children }) {
+function Detail({ title, eyebrow, onBack, children, go }) {
   return (
     <section className="screen-content">
-      <TopBar title={title} eyebrow={eyebrow} onBack={onBack} />
+      <TopBar title={title} eyebrow={eyebrow} onBack={onBack} go={go} />
       {children}
     </section>
   );

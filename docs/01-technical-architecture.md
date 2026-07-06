@@ -2,67 +2,140 @@
 
 ## 1. Product Intent
 
-Sayved is a mobile-first Christian AI guidance app. Users choose one trusted pastor, ask a faith question by text or voice, and receive a fast answer grounded in that pastor's published teachings, with scripture and sermon references.
+Sayved is a mobile-first Christian formation engine. The user is not entering separate pastor chat rooms; they are entering one continuous conversation with Sayved's own voice, the Director. The Director can draw from Scripture, the user's Memory, followed teachers, Council voices, and source-linked sermons without ever impersonating anyone.
 
-The MVP must feel native on iPhone from day one, because the Flutter build will later be wrapped or shipped as a mobile app. The architecture therefore favors a polished Flutter client, lightweight Supabase backend services, and a small but trustworthy RAG pipeline.
+The narrow MVP is the real production architecture with a deliberately small content set: four focused pastor/teacher slots. The named launch set includes Prophet T.B. Joshua, Pastor Chris Oyakhilome, Pastor E.A. Adeboye, and Archbishop Benson Idahosa. Until licenses or estate permissions are secured, these teachers must run in Phase A librarian mode: official links, public feeds, brief attributed quotes, request signals, and no deep transcript RAG.
 
-## 2. MVP Scope
+## 2. Governing Product Rules
 
-### Screens
+- Sayved quotes everyone and voices no one, living or dead.
+- The Director is the only generated speaker.
+- No first-person simulation of pastors, historic figures, or estate voices.
+- No voice cloning of real people.
+- No clergy claims, sacraments, confession, absolution, or therapeutic claims.
+- Crisis always triggers human hand-off and overrides all other features.
+- Memory is not chat history. It is an encrypted, user-owned, structured understanding of the user's walk.
+- Every feed ends. No streaks, badges, leaderboards, shame mechanics, infinite scroll, ads, paid placement, or data sale.
+- The conversation is never metered. Time/access may be metered later; talk inside access is not.
 
-1. Home / Landing
-2. New Conversation
-3. AI Conversation
-4. Pastor Profile
-5. Scripture / References
-6. Today's Devotion
-7. Profile
+## 3. Narrow MVP Scope
 
-### Core Capabilities
+The MVP builds the full Sayved flow with narrowed data.
 
-- Three pastors only for MVP.
-- Text prompt input.
-- Voice prompt input via Google Speech-to-Text.
-- AI answer generation with Gemini 2.5 Flash.
-- Retrieval from Supabase Postgres + pgvector.
-- Scripture references and sermon references.
-- Text-to-speech playback using Google TTS.
-- Daily devotion.
-- Saved conversations.
+### Core Product Surfaces
 
-### Explicitly Out Of Scope
+1. Onboarding / Privacy Promise
+2. Talk - The Director Conversation
+3. Voice Source Switcher - Sayved / My Council / My Teachers
+4. Teacher Focus / Pastor Profile
+5. Follow / Teacher Discovery
+6. Council Builder
+7. Council Session
+8. Scripture / References
+9. The Well - Daily Feed That Ends
+10. Today's Devotion / Reflection
+11. Memory / My Walk
+12. Memory Detail / Edit / Forget
+13. Spiritual Autobiography Preview
+14. Echo - Sunday Sermon Capture
+15. Echo Seven-Day Rhythm
+16. Library / Official Source Player
+17. Compare Teachings
+18. Disputation
+19. Crisis Hand-Off
+20. Profile / Settings / Legal
 
-- Payments, subscriptions, events, community, social features.
-- Multiple AI models exposed to users.
-- Pastor comparison as a real feature. If shown in UI, keep disabled or remove before launch.
-- Full analytics dashboard.
-- Notifications beyond static profile settings.
-- Public sharing pages.
+### MVP Build Priority
 
-## 3. Architecture Overview
+P0 for first production slice:
+
+- Onboarding with privacy, AI disclosure, and consent.
+- One Director-led conversation.
+- Four pastor slots shown in Follow/Council/Profile.
+- Teacher verification states.
+- Phase A librarian mode for unverified/estate teachers.
+- Phase B RAG path ready but disabled unless verified/licensed content is available.
+- Scripture references.
+- Memory extraction stub with local encrypted storage design.
+- The Well as a finite daily surface.
+- Crisis detection and hand-off.
+- Audio playback in the Director's voice.
+
+P1:
+
+- Council Builder and Council Session.
+- Echo sermon capture and seven-day rhythm.
+- Spiritual Autobiography preview.
+- Compare Teachings.
+
+P2:
+
+- Disputation with locked commentator register.
+- Confidential cloud / zero-knowledge memory sync.
+- Pastor dashboard.
+- Payments, day-passes, royalties, and full teacher economy.
+
+## 4. Architecture Overview
 
 ```mermaid
 flowchart TD
-    A["Flutter Mobile App"] --> B["Supabase Auth"]
-    A --> C["Supabase Edge Functions"]
-    A --> D["Supabase Storage"]
-    C --> E["Postgres Tables"]
-    C --> F["pgvector Similarity Search"]
-    C --> G["Gemini 2.5 Flash"]
-    C --> H["Google Embeddings"]
-    C --> I["Google STT/TTS"]
-    F --> E
-    D --> C
+    A["Flutter Mobile App"] --> B["On-Device Layer"]
+    A --> C["Supabase Auth"]
+    A --> D["Supabase Edge Functions"]
+    A --> E["Supabase Storage"]
+    B --> B1["Local Encrypted Memory"]
+    B --> B2["On-Device Extraction"]
+    B --> B3["Crisis Pre-Screen"]
+    D --> F["Postgres Tables"]
+    D --> G["pgvector Catalog Search"]
+    D --> H["Gemini 2.5 Flash"]
+    D --> I["Google Embeddings"]
+    D --> J["Google STT/TTS"]
+    D --> K["Official Content Routing"]
+    G --> F
+    E --> D
 ```
 
-## 4. Frontend Architecture
+## 5. Intelligence Tiers
+
+### Tier 0 - On Device
+
+Use the device for work that should remain local whenever possible:
+
+- Memory extraction and classification.
+- Local encrypted memory retrieval.
+- Echo sermon transcription where platform APIs support it.
+- Crisis pre-screening.
+- Short summaries and labels.
+- Offline cache and data-light behavior.
+
+Do not depend on on-device models for deep theological conversation at launch. Treat them as useful but context-limited.
+
+### Tier 1 - Confidential Cloud
+
+Future target for heavier memory-aware reasoning:
+
+- Hardware-isolated confidential compute.
+- User-held or enclave-only decryption.
+- No readable plaintext memory in normal server logs or databases.
+
+### Tier 2 - Frontier / Hosted LLM
+
+Launch path for deep Director conversation:
+
+- Gemini 2.5 Flash via Edge Functions.
+- Zero-retention or equivalent data controls where available.
+- PII minimization before external calls.
+- Explicit escalation consent for highly sensitive flows where needed.
+
+## 6. Frontend Architecture
 
 ### Framework
 
 - Flutter.
-- Target iOS-first mobile UX.
-- Responsive support for common iPhone sizes from iPhone SE through Pro Max.
-- Android should work, but visual QA is iPhone-first.
+- iOS-first visual and interaction QA.
+- Android-compatible, but iPhone polish is the bar.
+- Offline-aware architecture for Bible, Memory, Echo drafts, and cached Well content.
 
 ### State Management
 
@@ -71,38 +144,49 @@ Recommended: Riverpod.
 Use providers for:
 
 - Auth/session state.
-- Selected pastor.
-- Conversation draft.
-- Active conversation stream.
-- Daily devotion.
-- Saved items.
-
-Keep state local and simple for MVP. Avoid complex app-wide stores unless the codebase starts demanding it.
+- Current conversation.
+- Director mode.
+- Selected teacher focus.
+- Followed teachers.
+- Council seats.
+- Verification/license state.
+- Local Memory index.
+- The Well.
+- Crisis overlay state.
+- Legal/consent state.
 
 ### Navigation
 
 Recommended: `go_router`.
 
-Routes:
+Primary tabs:
 
-- `/` - Home
-- `/conversation/new` - New Conversation
-- `/conversation/:conversationId` - AI Conversation
-- `/pastors/:pastorId` - Pastor Profile
-- `/scripture/:referenceId` - Scripture / Reference
-- `/devotion/today` - Today's Devotion
-- `/profile` - Profile
+- `/talk` - one continuous conversation.
+- `/follow` - teachers, church, Council.
+- `/my-walk` - Memory, Autobiography, settings.
 
-Use native-feeling transitions:
+Important routes:
 
-- Push from pastor/profile/reference cards.
-- Bottom sheet for quick pastor selector only if needed.
-- Preserve bottom tab bar on Home, Chats, Devotions, Profile.
-- Hide bottom tab bar on full-focus detail routes if the screen needs breathing room.
+- `/onboarding`
+- `/conversation/:conversationId`
+- `/teachers/:teacherId`
+- `/council`
+- `/council/session`
+- `/scripture/:referenceId`
+- `/well/today`
+- `/devotion/today`
+- `/memory`
+- `/memory/:memoryId`
+- `/autobiography`
+- `/echo`
+- `/echo/rhythm/:sermonId`
+- `/library/source/:sourceId`
+- `/compare`
+- `/disputation`
+- `/crisis`
+- `/settings/legal`
 
 ### UI Composition
-
-Use feature folders:
 
 ```text
 lib/
@@ -110,117 +194,169 @@ lib/
     router.dart
     theme.dart
   features/
-    home/
-    conversations/
-    pastors/
+    onboarding/
+    talk/
+    follow/
+    council/
+    teachers/
     scripture/
-    devotions/
-    profile/
+    well/
+    memory/
+    echo/
+    library/
+    crisis/
+    settings/
   shared/
     widgets/
     services/
     models/
 ```
 
-## 5. Backend Architecture
+## 7. Backend Architecture
 
 ### Supabase Components
 
-- Postgres for canonical data.
-- pgvector for embeddings.
-- Supabase Auth for optional MVP accounts.
-- Supabase Storage for pastor images, sermon audio, and devotion imagery.
-- Edge Functions for all AI, embedding, STT, TTS, and RAG orchestration.
+- Postgres for public catalog, teacher metadata, citations, conversations, events, and consent records.
+- pgvector for approved teacher/source catalog embeddings.
+- Supabase Auth for account ownership.
+- Supabase Storage for approved assets and cached audio generated in the Director's voice.
+- Edge Functions for AI orchestration, catalog retrieval, speech, compliance gates, and source routing.
 
-The Flutter app must never call Gemini or Google AI APIs directly. Keep all AI keys server-side in Edge Function secrets.
+The Flutter app must never call Gemini or Google AI APIs directly. Keep all AI keys server-side.
 
 ### Edge Functions
 
-Required functions:
+Required for narrow MVP:
 
-- `create-conversation`
+- `start-conversation`
 - `send-message`
-- `generate-devotion`
+- `route-teacher-source`
 - `resolve-scripture-reference`
+- `today-well`
+- `extract-memory`
+- `save-memory-correction`
+- `forget-memory`
+- `crisis-check`
 - `transcribe-audio`
-- `synthesize-answer-audio`
-- `save-conversation`
+- `synthesize-director-audio`
+- `record-consent`
+- `request-teacher`
 
-Optional internal functions:
+Phase B / internal:
 
-- `ingest-sermon`
+- `ingest-licensed-source`
 - `embed-content-chunk`
-- `score-creator-content`
+- `score-teacher-content`
+- `compare-teachings`
+- `generate-disputation`
+- `generate-autobiography`
+- `process-echo-sermon`
 
-## 6. RAG Answer Flow
+## 8. Teacher Verification Engine
 
-1. User selects pastor.
-2. User submits question.
-3. Edge Function normalizes prompt and identifies intent.
-4. Function embeds prompt using Google Embeddings.
-5. Function retrieves top sermon chunks for selected pastor only.
-6. Function retrieves known scripture references related to those chunks.
-7. Function builds grounded system prompt.
-8. Gemini 2.5 Flash generates answer.
-9. Function validates citations and removes unsupported claims.
-10. Response, citations, and retrieval metadata are stored.
-11. Flutter renders answer with scripture chips, sermon references, save/share/listen actions.
+Every teacher/source has a `verification_status`:
 
-## 7. Performance Targets
+- `verified`: licensed/affiliated. Deep RAG allowed from approved transcripts; royalties later.
+- `unverified`: not affiliated. Public facts, official links, public feeds, brief attributed quotes only.
+- `estate`: deceased but not public domain. Treat exactly like unverified until estate license exists.
+- `historic_public_domain`: public-domain writings. Deep quotation and argument reconstruction allowed.
+- `thin_catalog`: not enough material. Admit the gap and never guess.
 
-- Home cold load: under 2.0s after app startup.
-- New Conversation ready: under 1.0s after route push.
-- Typical AI answer: under 3.0s where possible.
+For the current named pastors:
+
+- Prophet T.B. Joshua: `estate` unless SCOAN/estate license is secured.
+- Pastor Chris Oyakhilome: `unverified` unless Christ Embassy license is secured.
+- Pastor E.A. Adeboye: `unverified` unless RCCG/license is secured.
+- Archbishop Benson Idahosa: `estate` unless estate/ministry license is secured.
+
+## 9. Conversation Flow
+
+1. User opens Talk.
+2. Director responds first in Sayved's own voice.
+3. Crisis pre-screen runs before normal generation.
+4. Memory retrieval runs only when it serves the user.
+5. Scripture retrieval runs for biblical grounding.
+6. Teacher retrieval depends on verification state:
+   - Verified: approved chunks may be retrieved.
+   - Unverified/estate: route to official source; do not retrieve transcripts.
+   - Historic public domain: retrieve public-domain corpus.
+7. Gemini generates a Director answer with structured citations.
+8. Backend validates references, voice rule, and safety.
+9. Message, citations, and safe metadata are stored.
+10. On-device memory extraction proposes structured memories after the conversation.
+
+## 10. Performance Targets
+
+- App shell cold load: under 2.0s after startup.
+- Talk ready: under 1.0s after route push.
+- Message send feedback: under 100ms.
+- Typical Director answer: under 3.0s where possible.
+- Source routing card: under 1.0s.
 - TTS playback ready: under 2.0s after tap.
-- Message send interaction feedback: under 100ms.
+- Memory extraction: background, never blocks chat.
 
-If full answer generation exceeds 3 seconds, show a graceful streaming/loading state:
+Loading states should name the work without pretending:
 
-- "Searching Pastor Poju's teachings..."
-- "Grounding answer in scripture..."
-- "Preparing answer..."
+- "Listening carefully..."
+- "Checking Scripture..."
+- "Looking through verified sources..."
+- "Finding the right place to press play..."
 
-## 8. Security
+## 11. Security, Privacy, And Compliance
 
-- Store AI keys only in Supabase Edge Function secrets.
-- Enable row-level security on all user-owned tables.
-- Public pastor/devotion data can be read by all authenticated or anonymous users.
-- User conversations are private to the owning user or anonymous device id.
-- Validate every pastor id server-side.
-- Do not allow client-supplied source citations without backend verification.
+- Store AI keys only in Edge Function secrets.
+- Enable RLS on all user-owned tables.
+- Keep `content_chunks` server-only.
+- Treat religious, emotional, crisis, and memory data as sensitive.
+- Store consent records before account creation or notifications.
+- Publish Privacy Policy, Terms, AI disclosure, crisis protocol, takedown policy, and data export/delete controls before launch.
+- Do not log raw crisis content. Log only that a hand-off occurred.
+- Do not store Memory plaintext in normal server tables.
+- Support one-tap export and one-tap delete for user-owned data.
 
-## 9. Observability
+## 12. Observability
 
-Log these events server-side:
+Log operational events without sensitive content:
 
+- `onboarding_completed`
+- `privacy_consent_recorded`
 - `conversation_started`
 - `message_sent`
+- `teacher_source_routed`
 - `rag_retrieval_completed`
 - `answer_generated`
 - `answer_failed`
 - `scripture_opened`
-- `tts_requested`
-- `devotion_opened`
+- `well_opened`
+- `memory_extracted_local`
+- `memory_corrected`
+- `memory_forgotten`
+- `crisis_handoff_shown`
+- `teacher_requested`
+- `audio_requested`
 
-For MVP, store operational logs in a simple `app_events` table. Avoid adding a dashboard until after beta feedback.
-
-## 10. Mobile Native Feel Requirements
+## 13. Mobile Native Feel Requirements
 
 - Respect iOS safe areas and dynamic island spacing.
+- Three-tab shell: Talk, Follow, My Walk.
+- Composer has source switcher: Sayved / My Council / My Teachers.
 - Bottom tab bar uses blurred/translucent white surface.
-- Input bar is fixed above bottom tab bar in chat.
-- Use haptics on send, select pastor, save, and primary actions.
-- Use native-feeling spring animations, 180-260ms.
-- Avoid web-like landing page sections. Every screen should feel like an app screen.
+- Audio is first-class across answer, Well, Scripture, and Autobiography surfaces.
+- Haptics on send, source select, save, follow, Council seat, forget, and request teacher.
+- Every feed ends.
+- No red notification dots, streaks, or engagement bait.
 
-## 11. Launch Readiness Checklist
+## 14. Launch Readiness Checklist
 
-- Seven core screens implemented.
-- Three pastors seeded.
-- At least 30 sermon/source chunks per pastor for beta.
+- P0 screens implemented.
+- Four teacher slots modeled.
+- T.B. Joshua, Pastor Chris Oyakhilome, Pastor E.A. Adeboye, and Archbishop Benson Idahosa seeded with correct legal status.
+- Unverified/estate teachers cannot deep-RAG or appear in Disputation.
+- Verified-only RAG path guarded by license status.
 - Scripture reference page opens from every scripture chip.
-- Chat answers include at least one scripture reference when relevant.
-- TTS works for the latest AI response.
-- Voice prompt transcription works on physical device.
-- RLS tested for saved conversations.
+- Crisis hand-off tested before normal AI response.
+- Privacy consent and AI disclosure shown.
+- Memory extraction/correction/forgetting model implemented at least locally.
+- TTS uses only the Director's voice.
+- RLS tested for conversations and consent records.
 - iPhone SE and iPhone Pro Max visual QA complete.
