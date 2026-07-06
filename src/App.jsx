@@ -30,6 +30,12 @@ import {
   X,
 } from "lucide-react";
 import { teachers } from "./pastors";
+import {
+  formatApiError,
+  getApiStatusLabel,
+  isApiConfigured,
+  requestEndpoint,
+} from "./services/sayvedApi";
 
 // Pre-seeded Bible Verses database for Bible Reader / Search
 const bibleVerses = [
@@ -100,7 +106,8 @@ const defaultDevotion = {
     "Lord, soften my heart today. Help me receive enough light for the step in front of me, and lay down the need to prove my growth.",
 };
 
-// Swagger UI Endpoint definitions matching docs/04-api-specification.md
+// Swagger UI Endpoint definitions matching docs/04-api-specification.md.
+// These are contract previews for Supabase Edge Functions, not live AI calls.
 const swaggerEndpoints = [
   {
     id: "get-teachers",
@@ -109,34 +116,24 @@ const swaggerEndpoints = [
     description: "Returns active teacher slots and verification state.",
     payload: null,
     response: {
-      teachers: [
-        {
-          id: "tb-joshua-uuid",
-          slug: "tb-joshua",
-          display_name: "Prophet T.B. Joshua",
-          subtitle: "SCOAN",
-          verification_status: "estate",
-          affiliation_label: "Estate - official sources only",
-          deep_rag_allowed: false,
-          topics: ["Faith", "Healing", "Prayer"],
-        },
-        {
-          id: "pastor-chris-uuid",
-          slug: "pastor-chris",
-          display_name: "Pastor Chris Oyakhilome",
-          subtitle: "Christ Embassy",
-          verification_status: "unverified",
-          affiliation_label: "Not yet affiliated with Sayved",
-          deep_rag_allowed: false,
-          topics: ["Faith", "Healing", "Prayer"],
-        },
-      ],
+      teachers: teachers.map((teacher) => ({
+        id: `${teacher.id}-uuid`,
+        slug: teacher.id,
+        display_name: teacher.name,
+        subtitle: teacher.ministry,
+        verification_status: teacher.status,
+        affiliation_label: teacher.relationship,
+        deep_rag_allowed: teacher.canDeepRag,
+        portrait_url: teacher.image,
+        topics: teacher.topics,
+      })),
     },
   },
   {
     id: "get-teacher-sources",
     method: "GET",
     path: "/teachers/:id/sources",
+    samplePath: "/teachers/tb-joshua-uuid/sources",
     description: "Returns official source routes and licensed source metadata.",
     payload: null,
     response: {
@@ -150,7 +147,8 @@ const swaggerEndpoints = [
           id: "source-1",
           title: "Official SCOAN Message",
           source_type: "youtube",
-          source_url: "https://youtube.com/user/emmanueltv",
+          source_url: null,
+          route_verified: false,
           rights_status: "official_public_route",
           playback_mode: "official_embed",
         },
@@ -272,16 +270,16 @@ const swaggerEndpoints = [
         {
           source_id: "src-chris-1",
           title: "Official Christ Embassy message",
-          source_url: "https://...",
+          source_url: null,
+          route_verified: false,
           playback_mode: "official_embed",
-          reason: "Focuses on speaking faith over fear.",
+          reason:
+            "Official route candidate related to the user's topic. Review before surfacing.",
         },
       ],
-      brief_attributed_quote: {
-        text: "Don't fear the future; shape it with words of faith.",
-        source_label: "Publicly attributed teaching",
-        source_url: "https://...",
-      },
+      brief_attributed_quote: null,
+      quote_policy:
+        "Only include one brief quote when exact text and source attribution are available.",
       request_teacher_available: true,
     },
   },
@@ -323,13 +321,15 @@ const swaggerEndpoints = [
     response: {
       session_id: "session-xyz",
       director_synthesis:
-        "I have gathered the Council. Their public teachings point to starting with prayer before speed.",
+        "I have checked the Council seats. Unverified and estate seats remain in librarian mode, so the Director gathers official routes and public themes without invented dialogue.",
       seated_contributions: [
         {
           teacher_name: "Pastor Chris Oyakhilome",
           status: "unverified",
-          quote: "Starting your day with confession builds confidence.",
-          source_link: "https://...",
+          contribution_type: "official_route",
+          source_link: null,
+          route_verified: false,
+          deep_rag_used: false,
         },
       ],
     },
@@ -350,13 +350,15 @@ const swaggerEndpoints = [
       comparison: [
         {
           teacher_name: "Prophet T.B. Joshua",
-          theme: "Faith matches trials.",
-          source_route: "https://...",
+          comparison_depth: "official_routes_only",
+          source_route: null,
+          route_verified: false,
         },
         {
           teacher_name: "Pastor Chris Oyakhilome",
-          theme: "Speak faith declarations.",
-          source_route: "https://...",
+          comparison_depth: "official_routes_only",
+          source_route: null,
+          route_verified: false,
         },
       ],
     },
@@ -383,6 +385,7 @@ const swaggerEndpoints = [
     id: "get-resolve-scripture",
     method: "GET",
     path: "/resolve-scripture-reference?id=uuid",
+    samplePath: "/resolve-scripture-reference?id=psalm-119-105",
     description: "Resolves passage details and why it was referenced.",
     payload: null,
     response: {
@@ -393,7 +396,8 @@ const swaggerEndpoints = [
       related_source: {
         id: "source-1",
         title: "Official SCOAN sermon",
-        source_url: "https://...",
+        source_url: null,
+        route_verified: false,
       },
     },
   },
@@ -544,7 +548,8 @@ const swaggerEndpoints = [
       voice: "director-calm",
     },
     response: {
-      audio_url: "https://sayved.vercel.app/assets/director-voice.mp3",
+      audio_url: null,
+      status: "pending_backend_audio_url",
       duration_seconds: 92,
     },
   },
@@ -589,7 +594,106 @@ const swaggerEndpoints = [
       timestamp: "2026-07-06T08:45:00Z",
     },
   },
+  {
+    id: "post-feedback",
+    method: "POST",
+    path: "/feedback",
+    description: "Stores non-sensitive feedback on message quality.",
+    payload: {
+      message_id: "msg-dir-1",
+      rating: "helpful",
+      tags: ["felt_walked_with", "citation_clear"],
+      comment: "Optional user-safe feedback text.",
+    },
+    response: {
+      ok: true,
+      message: "Feedback recorded without sensitive Memory plaintext.",
+    },
+  },
 ];
+
+function usePersistentState(key, initialValue) {
+  const [value, setValue] = useState(() => {
+    if (typeof window === "undefined") return initialValue;
+
+    try {
+      const stored = window.localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // Local persistence is best-effort; the app still works without it.
+    }
+  }, [key, value]);
+
+  return [value, setValue];
+}
+
+function getSourceLabel(source) {
+  return typeof source === "string" ? source : source.label;
+}
+
+function getSourceUrl(source) {
+  return typeof source === "string" ? null : source.url;
+}
+
+function isSourceRouteVerified(source) {
+  return Boolean(typeof source === "object" && source.verified && source.url);
+}
+
+function EndpointNotice({
+  endpoint,
+  status = "idle",
+  error = "",
+  empty = false,
+}) {
+  const configured = isApiConfigured();
+  const title = configured ? "Endpoint ready" : "Endpoint pending";
+  let text = configured
+    ? `${endpoint} is wired through the real API service layer.`
+    : `${endpoint} is ready, but the backend base URL is not configured yet.`;
+
+  if (status === "loading") text = `Loading ${endpoint}...`;
+  if (error) text = error;
+  if (empty) text = `No saved data yet for ${endpoint}.`;
+
+  return (
+    <div className="endpoint-notice" role={error ? "alert" : "status"}>
+      <strong>{error ? "Request issue" : title}</strong>
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function SoftAccountPrompt({ onDismiss, onSettings }) {
+  return (
+    <article className="soft-account-card" aria-label="Soft account setup">
+      <div>
+        <strong>Keep this walk available later?</strong>
+        <p>
+          Your Memory stays local. A private vault can be set up after this
+          meaningful session so your walk can continue across devices.
+        </p>
+      </div>
+      <div className="card-actions">
+        <button className="quiet-button" onClick={onDismiss}>
+          Later
+        </button>
+        <button className="quiet-button" onClick={onSettings}>
+          Set up
+        </button>
+      </div>
+    </article>
+  );
+}
 
 function BrandHeader({ size = 56, light = false }) {
   return (
@@ -653,7 +757,7 @@ function BrandHeader({ size = 56, light = false }) {
           fontWeight: "400",
           margin: "12px 0 2px",
           color: light ? "#ffffff" : "var(--textPrimary)",
-          letterSpacing: "0.5px",
+          letterSpacing: 0,
           lineHeight: "1.1",
         }}
       >
@@ -664,13 +768,12 @@ function BrandHeader({ size = 56, light = false }) {
           fontFamily: "var(--sans)",
           fontSize: "11px",
           fontWeight: "600",
-          letterSpacing: "3px",
+          letterSpacing: 0,
           color: "var(--accentTaupeDark)",
-          textTransform: "uppercase",
           display: "block",
         }}
       >
-        FAITH ANSWERED
+        Walked with.
       </span>
     </div>
   );
@@ -735,7 +838,7 @@ function SmallBrandHeader() {
             fontSize: "18px",
             fontWeight: "400",
             color: "var(--textPrimary)",
-            letterSpacing: "0.5px",
+            letterSpacing: 0,
             lineHeight: "1",
             display: "block",
           }}
@@ -747,14 +850,13 @@ function SmallBrandHeader() {
             fontFamily: "var(--sans)",
             fontSize: "7px",
             fontWeight: "600",
-            letterSpacing: "1px",
+            letterSpacing: 0,
             color: "var(--accentTaupeDark)",
-            textTransform: "uppercase",
             display: "block",
             marginTop: "-1px",
           }}
         >
-          FAITH ANSWERED
+          Walked with.
         </span>
       </div>
     </div>
@@ -886,7 +988,14 @@ function SourceCard({ teacher, compact = false, onOpen, onRequest }) {
   );
 }
 
-function TeacherCard({ teacher, onOpen, onSeat, isSeated }) {
+function TeacherCard({
+  teacher,
+  onOpen,
+  onSeat,
+  onFollow,
+  isSeated,
+  isFollowed,
+}) {
   return (
     <article className="teacher-card">
       <img src={teacher.image} alt={teacher.name} />
@@ -904,6 +1013,10 @@ function TeacherCard({ teacher, onOpen, onSeat, isSeated }) {
         </div>
       </div>
       <div className="card-actions">
+        <button className="quiet-button" onClick={onFollow}>
+          {isFollowed ? <Check size={14} /> : <Plus size={14} />}{" "}
+          {isFollowed ? "Following" : "Follow"}
+        </button>
         <button className="quiet-button" onClick={onOpen}>
           <ExternalLink size={14} /> Profile
         </button>
@@ -917,21 +1030,23 @@ function TeacherCard({ teacher, onOpen, onSeat, isSeated }) {
 }
 
 function App() {
-  // Authentication states
-  const [authenticated, setAuthenticated] = useState(false);
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [authConfirmPassword, setAuthConfirmPassword] = useState("");
-  const [authMode, setAuthMode] = useState("signin"); // signin, signup
-  const [authError, setAuthError] = useState("");
-
-  const [onboarded, setOnboarded] = useState(false);
-  const [onboardingStep, setOnboardingStep] = useState("welcome"); // welcome, privacy, rhythm, consent
-  const [userIntent, setUserIntent] = useState("");
-  const [notificationRhythm, setNotificationRhythm] = useState(
+  const [onboarded, setOnboarded] = usePersistentState(
+    "sayved.onboarded",
+    false,
+  );
+  const [onboardingStep, setOnboardingStep] = usePersistentState(
+    "sayved.onboardingStep",
+    "welcome",
+  ); // welcome, privacy, rhythm, consent
+  const [userIntent, setUserIntent] = usePersistentState(
+    "sayved.userIntent",
+    "",
+  );
+  const [notificationRhythm, setNotificationRhythm] = usePersistentState(
+    "sayved.notificationRhythm",
     "Daily morning quiet",
   );
-  const [consents, setConsents] = useState({
+  const [consents, setConsents] = usePersistentState("sayved.consents", {
     privacy: false,
     ai: false,
     memory: false,
@@ -939,6 +1054,7 @@ function App() {
 
   const [tab, setTab] = useState("talk");
   const [screen, setScreen] = useState("talk");
+  const [, setRouteStack] = useState([]);
   const [scope, setScope] = useState("Sayved");
   const [selectedTeacher, setSelectedTeacher] = useState(teachers[0]);
   const [selectedMemory, setSelectedMemory] = useState(null);
@@ -946,39 +1062,56 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [bibleSearchQuery, setBibleSearchQuery] = useState("");
 
-  // Stale/Prised Initial states (cleared mock data)
-  const [memories, setMemories] = useState([]);
-  const [recoveryContact, setRecoveryContact] = useState({
-    name: "",
-    contact: "",
-    relationship: "",
-  });
-  const [councilSeats, setCouncilSeats] = useState([
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-  ]);
+  // User-owned local walk state.
+  const [memories, setMemories] = usePersistentState("sayved.memories", []);
+  const [recoveryContact, setRecoveryContact] = usePersistentState(
+    "sayved.recoveryContact",
+    {
+      name: "",
+      contact: "",
+      relationship: "",
+    },
+  );
+  const [councilSeats, setCouncilSeats] = usePersistentState(
+    "sayved.councilSeats",
+    [null, null, null, null, null, null, null],
+  );
+  const [followedTeachers, setFollowedTeachers] = usePersistentState(
+    "sayved.followedTeachers",
+    [],
+  );
 
   const [activeCapture, setActiveCapture] = useState(false);
   const [captureDuration, setCaptureDuration] = useState(0);
-  const [capturedSermons, setCapturedSermons] = useState([]);
+  const [capturedSermons, setCapturedSermons] = usePersistentState(
+    "sayved.capturedSermons",
+    [],
+  );
   const [compareTeachers, setCompareTeachers] = useState([
     teachers[0].id,
     teachers[1].id,
   ]);
   const [isPlayingAudio, setIsPlayingAudio] = useState(null); // id of playing element
-  const [audioProgress, setAudioProgress] = useState(40); // mock percentage
-  const [devotionSaved, setDevotionSaved] = useState(false);
-  const [completedRhythmDays, setCompletedRhythmDays] = useState([]);
+  const [audioProgress, setAudioProgress] = useState(40);
+  const [audioErrors, setAudioErrors] = useState({});
+  const [audioUrls, setAudioUrls] = useState({});
+  const [devotionSaved, setDevotionSaved] = usePersistentState(
+    "sayved.devotionSaved",
+    false,
+  );
+  const [completedRhythmDays, setCompletedRhythmDays] = usePersistentState(
+    "sayved.completedRhythmDays",
+    [],
+  );
   const [isCouncilDrawerOpen, setIsCouncilDrawerOpen] = useState(false);
   const [selectedSeatIndex, setSelectedSeatIndex] = useState(null);
+  const [softAccountDismissed, setSoftAccountDismissed] = usePersistentState(
+    "sayved.softAccountDismissed",
+    false,
+  );
 
-  // Clear all mock chat history on initialization
-  const [messages, setMessages] = useState([]);
+  // Persistent Talk history stays local unless the user deletes it.
+  const [messages, setMessages] = usePersistentState("sayved.messages", []);
 
   // Swagger UI Console states
   const [apiSearch, setApiSearch] = useState("");
@@ -989,15 +1122,11 @@ function App() {
 
   // Synchronize dynamic tab selection
   const activeTab = useMemo(() => {
+    if (["source", "scripture"].includes(screen)) return tab;
     if (
-      [
-        "follow",
-        "teacher",
-        "source",
-        "request",
-        "council",
-        "request-confirm",
-      ].includes(screen)
+      ["follow", "teacher", "request", "council", "request-confirm"].includes(
+        screen,
+      )
     )
       return "follow";
     if (
@@ -1041,34 +1170,44 @@ function App() {
     return () => clearInterval(interval);
   }, [activeCapture]);
 
-  function go(nextScreen, nextTab = tab) {
+  useEffect(() => {
+    if (!isPlayingAudio) return undefined;
+
+    const interval = setInterval(() => {
+      setAudioProgress((prev) => (prev >= 100 ? 0 : prev + 3));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isPlayingAudio]);
+
+  function go(nextScreen, nextTab = tab, options = {}) {
+    if (options.push) {
+      setRouteStack((items) => [...items, { screen, tab }]);
+    } else if (!["source", "scripture"].includes(nextScreen)) {
+      setRouteStack([]);
+    }
     setTab(nextTab);
     setScreen(nextScreen);
   }
 
-  // Handle Authentication validation
-  const handleAuth = () => {
-    if (!authEmail.trim() || !authPassword.trim()) {
-      setAuthError("Email and Password fields are required.");
-      return;
-    }
-    if (!/\S+@\S+\.\S+/.test(authEmail)) {
-      setAuthError("Please enter a valid email address.");
-      return;
-    }
-    if (authPassword.length < 6) {
-      setAuthError("Password must be at least 6 characters long.");
-      return;
-    }
-    if (authMode === "signup") {
-      if (authPassword !== authConfirmPassword) {
-        setAuthError("Passwords do not match.");
-        return;
+  function goBack(fallbackScreen = "talk", fallbackTab = "talk") {
+    setRouteStack((items) => {
+      const last = items[items.length - 1];
+      if (!last) {
+        setTab(fallbackTab);
+        setScreen(fallbackScreen);
+        return [];
       }
-    }
-    setAuthError("");
-    setAuthenticated(true);
-  };
+
+      setTab(last.tab);
+      setScreen(last.screen);
+      return items.slice(0, -1);
+    });
+  }
+
+  function openDetail(nextScreen) {
+    go(nextScreen, tab, { push: true });
+  }
 
   function handleSend() {
     if (!composer.trim()) return;
@@ -1097,7 +1236,7 @@ function App() {
       let hasMemory = false;
       let hasSource = false;
 
-      // Extract mock memory dynamically if the user types a recurring theme
+      // Local prototype extraction for recurring themes until Memory endpoint syncs.
       if (/behind|late|rush/i.test(prompt) && memories.length === 0) {
         const extracted = {
           id: `mem-${Date.now()}`,
@@ -1134,7 +1273,7 @@ function App() {
         }
       } else {
         // My Teachers mode
-        replyText = `Consulting ${selectedTeacher.name}'s library. As a ${selectedTeacher.type.toLowerCase()}, they are unverified. I will stay as Sayved and route you to official public sources.`;
+        replyText = `${selectedTeacher.name} is ${selectedTeacher.relationship.toLowerCase()}, so I will not pretend to speak from a licensed catalog. I can stay with you as Sayved and route you to official public sources.`;
         hasSource = true;
         hasScripture = true;
       }
@@ -1154,41 +1293,49 @@ function App() {
   }
 
   // Handle Swagger UI execution
-  const executeEndpoint = (endpoint) => {
+  const executeEndpoint = async (endpoint) => {
     const id = endpoint.id;
     setEndpointLoading((prev) => ({ ...prev, [id]: true }));
+    let parsedInput = null;
 
-    // Simulate API Network Delay
-    setTimeout(() => {
-      let customInput = endpointInputs[id];
-      let parsedInput = null;
+    try {
+      const customInput = endpointInputs[id];
 
-      try {
-        if (customInput) {
-          parsedInput = JSON.parse(customInput);
-        }
-      } catch {
-        // Fallback if JSON parse fails
+      if (customInput) {
+        parsedInput = JSON.parse(customInput);
       }
-
-      let resPayload = { ...endpoint.response };
-
-      // Dynamic response mockup adjustments
-      if (id === "post-crisis-check" && parsedInput && parsedInput.content) {
-        const containsSuicide = /suicide|kill/i.test(parsedInput.content);
-        resPayload.crisis_detected = containsSuicide;
-        if (!containsSuicide) {
-          resPayload.level = "none";
-          resPayload.handoff = null;
-        }
-      }
-
+    } catch {
       setEndpointResponses((prev) => ({
         ...prev,
-        [id]: JSON.stringify(resPayload, null, 2),
+        [id]: JSON.stringify(
+          {
+            error: {
+              code: "INVALID_JSON",
+              message: "Request payload must be valid JSON.",
+            },
+          },
+          null,
+          2,
+        ),
       }));
       setEndpointLoading((prev) => ({ ...prev, [id]: false }));
-    }, 600);
+      return;
+    }
+
+    try {
+      const response = await requestEndpoint(endpoint, parsedInput);
+      setEndpointResponses((prev) => ({
+        ...prev,
+        [id]: JSON.stringify(response, null, 2),
+      }));
+    } catch (error) {
+      setEndpointResponses((prev) => ({
+        ...prev,
+        [id]: JSON.stringify(formatApiError(error), null, 2),
+      }));
+    } finally {
+      setEndpointLoading((prev) => ({ ...prev, [id]: false }));
+    }
   };
 
   // Helper formatting for seconds to MM:SS
@@ -1202,6 +1349,16 @@ function App() {
 
   // Check if teacher is in Council Seats
   const isTeacherSeated = (id) => councilSeats.includes(id);
+
+  const isTeacherFollowed = (id) => followedTeachers.includes(id);
+
+  const toggleFollow = (id) => {
+    setFollowedTeachers((items) =>
+      items.includes(id)
+        ? items.filter((teacherId) => teacherId !== id)
+        : [...items, id],
+    );
+  };
 
   // Toggle seat placement
   const toggleSeat = (id) => {
@@ -1271,244 +1428,83 @@ function App() {
       setMemories([]);
       setRecoveryContact({ name: "", contact: "", relationship: "" });
       setCouncilSeats([null, null, null, null, null, null, null]);
+      setFollowedTeachers([]);
+      setCapturedSermons([]);
+      setCompletedRhythmDays([]);
+      setDevotionSaved(false);
+      setSoftAccountDismissed(false);
       setMessages([]);
       setOnboarded(false);
       setOnboardingStep("welcome");
-      setAuthenticated(false);
-      setAuthEmail("");
-      setAuthPassword("");
-      setAuthConfirmPassword("");
-      setAuthError("");
       go("talk", "talk");
     }
   };
 
-  // Toggle play/pause mock audio state
-  const handleToggleAudio = (id) => {
+  // Toggle play/pause; fetch Director TTS only when the backend is configured.
+  const handleToggleAudio = async (id) => {
     if (isPlayingAudio === id) {
       setIsPlayingAudio(null);
-    } else {
+      setAudioErrors((prev) => ({ ...prev, [id]: "" }));
+      return;
+    }
+
+    if (id === "source-player") {
+      const verifiedRoute = selectedTeacher.officialSources.find(
+        isSourceRouteVerified,
+      );
+
+      if (!verifiedRoute) {
+        setAudioErrors((prev) => ({
+          ...prev,
+          [id]: "Official playback is locked until this route is verified and has a real source URL.",
+        }));
+        return;
+      }
+
+      setAudioUrls((prev) => ({ ...prev, [id]: getSourceUrl(verifiedRoute) }));
+      setAudioErrors((prev) => ({ ...prev, [id]: "" }));
       setIsPlayingAudio(id);
-      // Simulate progress increment
-      const interval = setInterval(() => {
-        setAudioProgress((prev) => (prev >= 100 ? 0 : prev + 3));
-      }, 1000);
-      return () => clearInterval(interval);
+      return;
+    }
+
+    if (audioUrls[id]) {
+      setAudioErrors((prev) => ({ ...prev, [id]: "" }));
+      setIsPlayingAudio(id);
+      return;
+    }
+
+    if (!isApiConfigured()) {
+      setAudioErrors((prev) => ({
+        ...prev,
+        [id]: "Director TTS is ready for /synthesize-director-audio, but the backend base URL is not configured yet.",
+      }));
+      return;
+    }
+
+    try {
+      const ttsEndpoint = swaggerEndpoints.find(
+        (endpoint) => endpoint.id === "post-synthesize-audio",
+      );
+      const response = await requestEndpoint(ttsEndpoint, {
+        message_id: id,
+        voice: "director-calm",
+      });
+
+      if (!response?.audio_url) {
+        throw new Error("The TTS endpoint did not return audio_url.");
+      }
+
+      setAudioUrls((prev) => ({ ...prev, [id]: response.audio_url }));
+      setAudioErrors((prev) => ({ ...prev, [id]: "" }));
+      setIsPlayingAudio(id);
+    } catch (error) {
+      const formatted = formatApiError(error);
+      setAudioErrors((prev) => ({
+        ...prev,
+        [id]: formatted.error.message,
+      }));
     }
   };
-
-  // Render Premium Auth Screen if unauthenticated
-  if (!authenticated) {
-    return (
-      <div className="app-container">
-        <main
-          className="phone-viewport"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            padding: "30px",
-          }}
-        >
-          <div className="ambient-photo" />
-          <div style={{ textAlign: "center", marginBottom: "30px", zIndex: 2 }}>
-            <BrandHeader size={72} />
-          </div>
-
-          <div
-            className="quiet-panel"
-            style={{
-              zIndex: 2,
-              padding: "20px",
-              background: "rgba(254, 253, 252, 0.94)",
-              borderRadius: "12px",
-              border: "1px solid var(--borderSoft)",
-              boxShadow: "0 12px 30px var(--shadowWarm)",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "18px",
-                marginTop: 0,
-                marginBottom: "16px",
-                textAlign: "center",
-                fontFamily: "var(--serif)",
-              }}
-            >
-              {authMode === "signin"
-                ? "Sign In to Vault"
-                : "Create Private Vault"}
-            </h2>
-
-            {authError && (
-              <div
-                style={{
-                  padding: "8px 12px",
-                  background: "rgba(167, 111, 91, 0.1)",
-                  border: "1px solid rgba(167, 111, 91, 0.2)",
-                  borderRadius: "6px",
-                  color: "var(--warningClay)",
-                  fontSize: "12px",
-                  marginBottom: "12px",
-                  lineHeight: "1.4",
-                }}
-              >
-                {authError}
-              </div>
-            )}
-
-            <div style={{ marginBottom: "12px" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "11px",
-                  fontWeight: "600",
-                  color: "var(--textSecondary)",
-                  marginBottom: "4px",
-                }}
-              >
-                Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="E.g., name@domain.com"
-                value={authEmail}
-                onChange={(e) => setAuthEmail(e.target.value)}
-                style={{
-                  height: "40px",
-                  width: "100%",
-                  padding: "0 10px",
-                  background: "var(--surfaceCream)",
-                  border: "1px solid var(--borderSoft)",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  outline: "none",
-                  color: "var(--textPrimary)",
-                }}
-              />
-            </div>
-
-            <div
-              style={{ marginBottom: authMode === "signup" ? "12px" : "18px" }}
-            >
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "11px",
-                  fontWeight: "600",
-                  color: "var(--textSecondary)",
-                  marginBottom: "4px",
-                }}
-              >
-                Password
-              </label>
-              <input
-                type="password"
-                placeholder="Enter password"
-                value={authPassword}
-                onChange={(e) => setAuthPassword(e.target.value)}
-                style={{
-                  height: "40px",
-                  width: "100%",
-                  padding: "0 10px",
-                  background: "var(--surfaceCream)",
-                  border: "1px solid var(--borderSoft)",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  outline: "none",
-                  color: "var(--textPrimary)",
-                }}
-              />
-            </div>
-
-            {authMode === "signup" && (
-              <div style={{ marginBottom: "18px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "11px",
-                    fontWeight: "600",
-                    color: "var(--textSecondary)",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  placeholder="Repeat password"
-                  value={authConfirmPassword}
-                  onChange={(e) => setAuthConfirmPassword(e.target.value)}
-                  style={{
-                    height: "40px",
-                    width: "100%",
-                    padding: "0 10px",
-                    background: "var(--surfaceCream)",
-                    border: "1px solid var(--borderSoft)",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    outline: "none",
-                    color: "var(--textPrimary)",
-                  }}
-                />
-              </div>
-            )}
-
-            <button
-              className="primary-button"
-              onClick={handleAuth}
-              style={{ width: "100%" }}
-            >
-              {authMode === "signin"
-                ? "Open Vault"
-                : "Create Private Key & Vault"}
-            </button>
-
-            <div style={{ marginTop: "16px", textAlign: "center" }}>
-              <button
-                onClick={() => {
-                  setAuthMode(authMode === "signin" ? "signup" : "signin");
-                  setAuthError("");
-                }}
-                style={{
-                  border: 0,
-                  background: "transparent",
-                  color: "var(--accentTaupeDark)",
-                  fontSize: "12px",
-                  fontWeight: "600",
-                }}
-              >
-                {authMode === "signin"
-                  ? "Don't have a vault? Create one"
-                  : "Already have a vault? Sign in"}
-              </button>
-            </div>
-          </div>
-
-          <div
-            style={{
-              zIndex: 2,
-              textAlign: "center",
-              marginTop: "24px",
-              color: "var(--textSecondary)",
-              fontSize: "11px",
-              lineHeight: "1.4",
-              padding: "0 10px",
-            }}
-          >
-            <LockKeyhole
-              size={14}
-              style={{ color: "var(--accentTaupe)", marginBottom: "4px" }}
-            />
-            <p style={{ margin: 0 }}>
-              All database values are scoped to your local security keys. We
-              hold no readable master passwords on servers.
-            </p>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   // Onboarding screens render before Tab system
   if (!onboarded) {
@@ -1779,9 +1775,8 @@ function App() {
                 fontFamily: "var(--sans)",
                 fontSize: "11px",
                 fontWeight: "600",
-                letterSpacing: "1.5px",
+                letterSpacing: 0,
                 color: "var(--accentTaupeDark)",
-                textTransform: "uppercase",
                 display: "block",
                 marginBottom: "4px",
               }}
@@ -1838,6 +1833,22 @@ function App() {
               </button>
             ))}
           </div>
+
+          <EndpointNotice
+            endpoint="/start-conversation + /send-message"
+            empty={messages.length === 0}
+          />
+
+          {messages.filter((message) => message.role === "user").length >= 1 &&
+            !softAccountDismissed && (
+              <SoftAccountPrompt
+                onDismiss={() => setSoftAccountDismissed(true)}
+                onSettings={() => {
+                  setSoftAccountDismissed(true);
+                  go("settings", "walk");
+                }}
+              />
+            )}
 
           <div className="message-stack">
             {/* Pristine stale state for chat screen */}
@@ -1964,7 +1975,7 @@ function App() {
                   {message.scripture && (
                     <button
                       className="scripture-chip"
-                      onClick={() => go("scripture", "talk")}
+                      onClick={() => openDetail("scripture")}
                     >
                       <BookOpen size={14} /> {scripture.reference}
                     </button>
@@ -1975,7 +1986,7 @@ function App() {
                     <SourceCard
                       compact
                       teacher={selectedTeacher}
-                      onOpen={() => go("source", "follow")}
+                      onOpen={() => openDetail("source")}
                       onRequest={() => go("request-confirm", "follow")}
                     />
                   )}
@@ -1992,42 +2003,54 @@ function App() {
                   )}
 
                   {message.role === "director" && (
-                    <div className="listen-row">
-                      <button onClick={() => handleToggleAudio(message.id)}>
-                        {isPlayingAudio === message.id ? (
-                          <Pause size={14} />
-                        ) : (
-                          <Play size={14} />
-                        )}
-                      </button>
-                      <span>Listen reflection</span>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: "4px",
-                          background: "var(--borderSoft)",
-                          borderRadius: "2px",
-                          margin: "0 8px",
-                          position: "relative",
-                          overflow: "hidden",
-                        }}
-                      >
+                    <>
+                      <div className="listen-row">
+                        <button onClick={() => handleToggleAudio(message.id)}>
+                          {isPlayingAudio === message.id ? (
+                            <Pause size={14} />
+                          ) : (
+                            <Play size={14} />
+                          )}
+                        </button>
+                        <span>Listen reflection</span>
                         <div
                           style={{
-                            position: "absolute",
-                            left: 0,
-                            top: 0,
-                            height: "100%",
-                            width:
-                              isPlayingAudio === message.id
-                                ? `${audioProgress}%`
-                                : "0%",
-                            background: "var(--accentTaupe)",
-                            transition: "width 0.5s ease",
+                            flex: 1,
+                            height: "4px",
+                            background: "var(--borderSoft)",
+                            borderRadius: "2px",
+                            margin: "0 8px",
+                            position: "relative",
+                            overflow: "hidden",
                           }}
-                        />
+                        >
+                          <div
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              top: 0,
+                              height: "100%",
+                              width:
+                                isPlayingAudio === message.id
+                                  ? `${audioProgress}%`
+                                  : "0%",
+                              background: "var(--accentTaupe)",
+                              transition: "width 0.5s ease",
+                            }}
+                          />
+                        </div>
                       </div>
-                    </div>
+                      {audioErrors[message.id] && (
+                        <p className="micro-error">{audioErrors[message.id]}</p>
+                      )}
+                      {audioUrls[message.id] && (
+                        <audio
+                          className="native-audio"
+                          controls
+                          src={audioUrls[message.id]}
+                        />
+                      )}
+                    </>
                   )}
                 </article>
               ))
@@ -2096,9 +2119,10 @@ function App() {
         <Detail
           title="Scripture"
           eyebrow="Grounding context"
-          onBack={() => go("talk", "talk")}
+          onBack={() => goBack("talk", "talk")}
           go={go}
         >
+          <EndpointNotice endpoint="/resolve-scripture-reference" />
           <article className="quiet-panel scripture-page">
             <Pill tone="olive">Referenced by Director</Pill>
             <h2 style={{ marginTop: "12px" }}>{scripture.reference}</h2>
@@ -2206,6 +2230,10 @@ function App() {
       {screen === "follow" && (
         <section className="screen-content">
           <TopBar title="Follow" eyebrow="Teachers & Council" go={go} />
+          <EndpointNotice
+            endpoint="/teachers"
+            empty={filteredTeachers.length === 0}
+          />
 
           <div className="search-box">
             <Search size={17} />
@@ -2252,11 +2280,13 @@ function App() {
                 key={teacher.id}
                 teacher={teacher}
                 isSeated={isTeacherSeated(teacher.id)}
+                isFollowed={isTeacherFollowed(teacher.id)}
                 onOpen={() => {
                   setSelectedTeacher(teacher);
                   go("teacher", "follow");
                 }}
                 onSeat={() => toggleSeat(teacher.id)}
+                onFollow={() => toggleFollow(teacher.id)}
               />
             ))}
             {filteredTeachers.length === 0 && (
@@ -2282,6 +2312,7 @@ function App() {
           onBack={() => go("follow", "follow")}
           go={go}
         >
+          <EndpointNotice endpoint="/teachers/:id/sources" />
           <article className="teacher-profile" style={{ marginBottom: "16px" }}>
             <img src={selectedTeacher.image} alt={selectedTeacher.name} />
             <div>
@@ -2313,9 +2344,27 @@ function App() {
 
           <SourceCard
             teacher={selectedTeacher}
-            onOpen={() => go("source", "follow")}
+            onOpen={() => openDetail("source")}
             onRequest={() => go("request-confirm", "follow")}
           />
+
+          <button
+            className="secondary-button"
+            style={{
+              marginTop: "12px",
+              background: isTeacherFollowed(selectedTeacher.id)
+                ? "rgba(123, 130, 102, 0.08)"
+                : "var(--surfaceCream)",
+              color: isTeacherFollowed(selectedTeacher.id)
+                ? "var(--successOlive)"
+                : "var(--textPrimary)",
+            }}
+            onClick={() => toggleFollow(selectedTeacher.id)}
+          >
+            {isTeacherFollowed(selectedTeacher.id)
+              ? "Following Teacher"
+              : "Follow Teacher"}
+          </button>
 
           <button
             className="secondary-button"
@@ -2342,9 +2391,13 @@ function App() {
         <Detail
           title="Source Player"
           eyebrow="Official routing player"
-          onBack={() => go("follow", "follow")}
+          onBack={() => goBack("follow", "follow")}
           go={go}
         >
+          <EndpointNotice
+            endpoint="/teachers/:id/sources + /route-teacher-source"
+            error={audioErrors["source-player"]}
+          />
           <article className="player-card">
             <div
               className="player-art"
@@ -2466,6 +2519,16 @@ function App() {
                 />
               </button>
             </div>
+            {audioErrors["source-player"] && (
+              <p className="micro-error">{audioErrors["source-player"]}</p>
+            )}
+            {audioUrls["source-player"] && (
+              <audio
+                className="native-audio"
+                controls
+                src={audioUrls["source-player"]}
+              />
+            )}
           </article>
 
           <SectionTitle title="Official Public Channels" />
@@ -2477,35 +2540,49 @@ function App() {
               overflow: "hidden",
             }}
           >
-            {selectedTeacher.officialSources.map((source, index) => (
-              <a
-                href="#external-source"
-                key={index}
-                className="list-row"
-                style={{
-                  textDecoration: "none",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  alert(`Routing to external browser path: ${source}`);
-                }}
-              >
-                <span
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  <ExternalLink size={14} /> {source}
-                </span>
-                <ChevronLeft
-                  size={14}
+            {selectedTeacher.officialSources.map((source, index) => {
+              const verified = isSourceRouteVerified(source);
+              const label = getSourceLabel(source);
+              const url = getSourceUrl(source);
+
+              return (
+                <a
+                  href={verified ? url : undefined}
+                  key={index}
+                  className="list-row"
+                  aria-disabled={!verified}
                   style={{
-                    transform: "rotate(180deg)",
-                    color: "var(--textMuted)",
+                    textDecoration: "none",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    opacity: verified ? 1 : 0.74,
                   }}
-                />
-              </a>
-            ))}
+                  onClick={(e) => {
+                    if (!verified) {
+                      e.preventDefault();
+                      setAudioErrors((prev) => ({
+                        ...prev,
+                        "source-player":
+                          "This source label is pending official route verification.",
+                      }));
+                    }
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <ExternalLink size={14} /> {label}
+                  </span>
+                  <span className="route-state">
+                    {verified ? "Open" : "Pending"}
+                  </span>
+                </a>
+              );
+            })}
           </div>
         </Detail>
       )}
@@ -2559,6 +2636,7 @@ function App() {
           onBack={() => go("follow", "follow")}
           go={go}
         >
+          <EndpointNotice endpoint="/council + /council/seats" />
           <div
             style={{
               marginBottom: "16px",
@@ -2821,6 +2899,10 @@ function App() {
           onBack={() => go("talk", "talk")}
           go={go}
         >
+          <EndpointNotice
+            endpoint="/council/session"
+            empty={councilSeats.filter(Boolean).length === 0}
+          />
           <article className="director-card" style={{ marginBottom: "16px" }}>
             <div className="director-head">
               <Mark small />
@@ -2896,7 +2978,7 @@ function App() {
                       }}
                       onClick={() => {
                         setSelectedTeacher(t);
-                        go("source", "follow");
+                        openDetail("source");
                       }}
                     >
                       <Play size={10} /> Open Official Route
@@ -2922,6 +3004,7 @@ function App() {
           onBack={() => go("talk", "talk")}
           go={go}
         >
+          <EndpointNotice endpoint="/compare-teachings" />
           <div
             style={{
               display: "grid",
@@ -3065,7 +3148,7 @@ function App() {
                     }}
                     onClick={() => {
                       setSelectedTeacher(t);
-                      go("source", "follow");
+                      openDetail("source");
                     }}
                   >
                     View Route
@@ -3084,6 +3167,10 @@ function App() {
           onBack={() => go("talk", "talk")}
           go={go}
         >
+          <EndpointNotice
+            endpoint="/generate-disputation"
+            error="Locked until verified or public-domain voices are available."
+          />
           <div className="quiet-panel" style={{ marginBottom: "16px" }}>
             <h2 style={{ fontSize: "18px" }}>The Disputation Discipline</h2>
             <p
@@ -3136,7 +3223,7 @@ function App() {
 
           <SectionTitle title="Disputation Canons" />
           <div className="rule-list">
-            <span>No first-person pastor dialog simulation.</span>
+            <span>No AI pastor roleplay or invented dialogue.</span>
             <span>No winner declared; closes with a quiet prompt.</span>
             <span>Core creedal truths are never contested.</span>
           </div>
@@ -3147,6 +3234,10 @@ function App() {
       {screen === "walk" && (
         <section className="screen-content">
           <TopBar title="My Walk" eyebrow="Private Spiritual Record" go={go} />
+          <EndpointNotice
+            endpoint="/extract-memory"
+            empty={memories.length === 0}
+          />
 
           <div className="walk-hero" style={{ marginBottom: "16px" }}>
             <Pill tone="olive">Owned by you</Pill>
@@ -3167,12 +3258,6 @@ function App() {
               </button>
               <button
                 className="secondary-button"
-                style={{
-                  flex: 1,
-                  minHeight: "36px",
-                  fontSize: "12px",
-                  marginTop: 0,
-                }}
                 onClick={handleExport}
                 disabled={memories.length === 0}
                 style={{
@@ -3357,6 +3442,7 @@ function App() {
           onBack={() => go("walk", "walk")}
           go={go}
         >
+          <EndpointNotice endpoint="/today-well" />
           <div
             style={{
               marginBottom: "16px",
@@ -3385,6 +3471,16 @@ function App() {
               Narration
             </button>
           </div>
+          {audioErrors["well-audio"] && (
+            <p className="micro-error">{audioErrors["well-audio"]}</p>
+          )}
+          {audioUrls["well-audio"] && (
+            <audio
+              className="native-audio"
+              controls
+              src={audioUrls["well-audio"]}
+            />
+          )}
 
           <WellItem
             icon={<BookOpen size={16} />}
@@ -3403,7 +3499,7 @@ function App() {
             text={`${teachers[0].name}: official route is open for consultation on Faith.`}
             onClick={() => {
               setSelectedTeacher(teachers[0]);
-              go("source", "follow");
+              openDetail("source");
             }}
           />
 
@@ -3432,6 +3528,7 @@ function App() {
           onBack={() => go("walk", "walk")}
           go={go}
         >
+          <EndpointNotice endpoint="/today-devotion" />
           <article className="devotion-page" style={{ position: "relative" }}>
             <span>Reflection of the Day</span>
             <h2>{defaultDevotion.title}</h2>
@@ -3441,7 +3538,7 @@ function App() {
             </p>
             <button
               className="scripture-chip"
-              onClick={() => go("scripture", "talk")}
+              onClick={() => openDetail("scripture")}
             >
               <BookOpen size={14} /> Luke 8:15
             </button>
@@ -3529,6 +3626,16 @@ function App() {
                 Listen Audio Devotional (2:45)
               </span>
             </div>
+            {audioErrors["devotion-audio"] && (
+              <p className="micro-error">{audioErrors["devotion-audio"]}</p>
+            )}
+            {audioUrls["devotion-audio"] && (
+              <audio
+                className="native-audio"
+                controls
+                src={audioUrls["devotion-audio"]}
+              />
+            )}
           </article>
 
           <div className="action-grid" style={{ marginTop: "12px" }}>
@@ -3554,6 +3661,144 @@ function App() {
             </button>
             <button onClick={() => alert("Shared link to devotion")}>
               <ExternalLink size={16} /> Share
+            </button>
+          </div>
+        </Detail>
+      )}
+
+      {/* 10. Memory */}
+      {screen === "memory" && (
+        <Detail
+          title="Memory"
+          eyebrow="Owned, correctable, local"
+          onBack={() => go("walk", "walk")}
+          go={go}
+        >
+          <EndpointNotice
+            endpoint="/extract-memory + /save-memory-correction + /forget-memory"
+            empty={memories.length === 0}
+          />
+          <div className="walk-hero" style={{ marginBottom: "16px" }}>
+            <Pill tone="olive">Your walk belongs to you</Pill>
+            <h2 style={{ fontSize: "20px", marginTop: "8px" }}>
+              Memory is not chat history.
+            </h2>
+            <p style={{ margin: "6px 0 0" }}>
+              Sayved stores structured themes, strengths, commitments, and
+              spiritual markers locally so they can be corrected or forgotten.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "8px",
+            }}
+          >
+            <SectionTitle title="Memory Threads" />
+            <button
+              onClick={() => {
+                const newMem = {
+                  id: `mem-${Date.now()}`,
+                  type: "Spiritual Marker",
+                  title: "New Spiritual Focus",
+                  body: "Enter your custom notes here...",
+                  source: "Added manually",
+                };
+                setMemories([newMem, ...memories]);
+                setSelectedMemory(newMem);
+                go("memory-detail", "walk");
+              }}
+              style={{
+                border: 0,
+                background: "transparent",
+                color: "var(--accentTaupeDark)",
+                fontSize: "12px",
+                fontWeight: "600",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <Plus size={14} /> Add
+            </button>
+          </div>
+
+          <div className="memory-list" style={{ marginBottom: "16px" }}>
+            {memories.length === 0 ? (
+              <div
+                style={{
+                  padding: "30px 16px",
+                  border: "1px dashed var(--borderSoft)",
+                  borderRadius: "8px",
+                  background: "rgba(254,253,252,0.5)",
+                  textAlign: "center",
+                  color: "var(--textSecondary)",
+                }}
+              >
+                <Archive
+                  size={28}
+                  style={{
+                    color: "var(--textMuted)",
+                    margin: "0 auto 8px",
+                  }}
+                />
+                <h3
+                  style={{
+                    margin: "6px 0",
+                    fontSize: "14px",
+                    color: "var(--textPrimary)",
+                  }}
+                >
+                  No Memory threads yet
+                </h3>
+                <p style={{ margin: 0, fontSize: "12px", lineHeight: "1.5" }}>
+                  After a meaningful Talk conversation, Sayved can propose
+                  private local memories for your review.
+                </p>
+              </div>
+            ) : (
+              memories.map((item) => (
+                <button
+                  key={item.id}
+                  className="memory-card"
+                  onClick={() => {
+                    setSelectedMemory(item);
+                    go("memory-detail", "walk");
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Pill>{item.type}</Pill>
+                    <span
+                      style={{ fontSize: "11px", color: "var(--textMuted)" }}
+                    >
+                      {item.source}
+                    </span>
+                  </div>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="action-grid">
+            <button onClick={() => go("autobiography", "walk")}>
+              <FileText size={16} /> Autobiography
+            </button>
+            <button onClick={handleExport} disabled={memories.length === 0}>
+              <Download size={16} /> Export
+            </button>
+            <button onClick={() => go("recovery", "walk")}>
+              <LockKeyhole size={16} /> Recovery
             </button>
           </div>
         </Detail>
@@ -3747,6 +3992,10 @@ function App() {
           onBack={() => go("memory", "walk")}
           go={go}
         >
+          <EndpointNotice
+            endpoint="/generate-autobiography"
+            empty={memories.length === 0}
+          />
           <article
             className="quiet-panel"
             style={{
@@ -3852,6 +4101,10 @@ function App() {
           onBack={() => go("walk", "walk")}
           go={go}
         >
+          <EndpointNotice
+            endpoint="/process-echo-sermon + /transcribe-audio"
+            empty={capturedSermons.length === 0}
+          />
           <article className="capture-card" style={{ padding: "30px 20px" }}>
             <div
               style={{
@@ -4267,6 +4520,7 @@ function App() {
           onBack={() => go("walk", "walk")}
           go={go}
         >
+          <EndpointNotice endpoint="/record-consent + /feedback" />
           <div
             className="quiet-panel"
             style={{ marginBottom: "16px", padding: "16px" }}
@@ -4733,9 +4987,11 @@ function App() {
                 color: "var(--successOlive)",
               }}
             >
-              <strong>API Console</strong>: Inspect and execute live request
-              payloads against simulated Supabase Edge Function endpoints
-              according to Sayved specification.
+              <strong>API Console</strong>: Inspect canonical request and
+              response payloads for the Supabase Edge Function contracts. This
+              screen calls the configured backend service layer directly.
+              <br />
+              {getApiStatusLabel()}
             </p>
           </div>
 
@@ -4818,7 +5074,6 @@ function App() {
                               display: "block",
                               fontSize: "10px",
                               fontWeight: "700",
-                              textTransform: "uppercase",
                               color: "var(--textSecondary)",
                               marginBottom: "4px",
                             }}
@@ -4852,7 +5107,7 @@ function App() {
                         onClick={() => executeEndpoint(endpoint)}
                         disabled={isLoading}
                       >
-                        {isLoading ? "Executing..." : "Execute API Request"}
+                        {isLoading ? "Calling..." : "Call Edge Function"}
                       </button>
 
                       {responseValue && (
@@ -4869,11 +5124,10 @@ function App() {
                               style={{
                                 fontSize: "10px",
                                 fontWeight: "700",
-                                textTransform: "uppercase",
                                 color: "var(--textSecondary)",
                               }}
                             >
-                              Server Response Payload
+                              Contract Response Payload
                             </label>
                             <button
                               onClick={() => {
@@ -4933,6 +5187,8 @@ function Shell({
             <button
               className={activeTab === "talk" ? "active" : ""}
               onClick={() => onTab("talk")}
+              aria-label="Talk tab"
+              type="button"
             >
               <Home size={20} />
               <span>Talk</span>
@@ -4940,6 +5196,8 @@ function Shell({
             <button
               className={activeTab === "follow" ? "active" : ""}
               onClick={() => onTab("follow")}
+              aria-label="Follow tab"
+              type="button"
             >
               <UsersRound size={20} />
               <span>Follow</span>
@@ -4947,6 +5205,8 @@ function Shell({
             <button
               className={activeTab === "walk" ? "active" : ""}
               onClick={() => onTab("walk")}
+              aria-label="My Walk tab"
+              type="button"
             >
               <UserRound size={20} />
               <span>My Walk</span>

@@ -8,7 +8,11 @@ export const teachers = [
     relationship: "Estate - official sources only",
     image: "/assets/TB Joshua.jpeg",
     topics: ["Faith", "Healing", "Prayer", "Hope"],
-    officialSources: ["Official SCOAN channel", "SCOAN sermon library", "Emmanuel TV public routes"],
+    officialSources: [
+      { label: "Official SCOAN channel", verified: false, url: null },
+      { label: "SCOAN sermon library", verified: false, url: null },
+      { label: "Emmanuel TV public routes", verified: false, url: null },
+    ],
     canDeepRag: false,
   },
   {
@@ -20,7 +24,11 @@ export const teachers = [
     relationship: "Not yet affiliated with Sayved",
     image: "/assets/Chris Oyakhilome.jpeg",
     topics: ["Faith", "Confession", "Healing", "Prayer"],
-    officialSources: ["LoveWorld official platforms", "Rhapsody public routes", "Official YouTube route"],
+    officialSources: [
+      { label: "LoveWorld official platforms", verified: false, url: null },
+      { label: "Rhapsody public routes", verified: false, url: null },
+      { label: "Official YouTube route", verified: false, url: null },
+    ],
     canDeepRag: false,
   },
   {
@@ -32,7 +40,11 @@ export const teachers = [
     relationship: "Not yet affiliated with Sayved",
     image: "/assets/Pastor Enoch Adejare Adeboye .jpeg",
     topics: ["Holiness", "Prayer", "Wisdom", "Family"],
-    officialSources: ["RCCG official channels", "Open Heavens public routes", "Official sermon routes"],
+    officialSources: [
+      { label: "RCCG official channels", verified: false, url: null },
+      { label: "Open Heavens public routes", verified: false, url: null },
+      { label: "Official sermon routes", verified: false, url: null },
+    ],
     canDeepRag: false,
   },
   {
@@ -44,7 +56,11 @@ export const teachers = [
     relationship: "Estate - official sources only",
     image: "/assets/Benson Idahosa.jpeg",
     topics: ["Faith", "Leadership", "Evangelism", "Courage"],
-    officialSources: ["Official ministry routes", "Estate-approved public materials", "Legacy library routes"],
+    officialSources: [
+      { label: "Official ministry routes", verified: false, url: null },
+      { label: "Estate-approved public materials", verified: false, url: null },
+      { label: "Legacy library routes", verified: false, url: null },
+    ],
     canDeepRag: false,
   },
 ];
