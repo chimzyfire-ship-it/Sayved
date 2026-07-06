@@ -591,6 +591,217 @@ const swaggerEndpoints = [
   },
 ];
 
+function BrandHeader({ size = 56, light = false }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+      }}
+    >
+      {/* Golden Cross with radial glow */}
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 100 100"
+        style={{ overflow: "visible" }}
+      >
+        <defs>
+          <linearGradient
+            id="gold-cross-logo"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="100%"
+          >
+            <stop offset="0%" stopColor="#e5c8a2" />
+            <stop offset="50%" stopColor="#b79a73" />
+            <stop offset="100%" stopColor="#8d6f46" />
+          </linearGradient>
+          <radialGradient id="cross-glow-logo" cx="50%" cy="40%" r="30%">
+            <stop offset="0%" stopColor="#fff6e8" stopOpacity="1" />
+            <stop offset="60%" stopColor="#f7e1c8" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#f7e1c8" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="40" r="24" fill="url(#cross-glow-logo)" />
+        <rect
+          x="47.5"
+          y="10"
+          width="5"
+          height="60"
+          rx="2.5"
+          fill="url(#gold-cross-logo)"
+        />
+        <rect
+          x="30"
+          y="28"
+          width="40"
+          height="5"
+          rx="2.5"
+          fill="url(#gold-cross-logo)"
+        />
+      </svg>
+
+      <h1
+        style={{
+          fontFamily: "var(--serif)",
+          fontSize: "36px",
+          fontWeight: "400",
+          margin: "12px 0 2px",
+          color: light ? "#ffffff" : "var(--textPrimary)",
+          letterSpacing: "0.5px",
+          lineHeight: "1.1",
+        }}
+      >
+        Sayved
+      </h1>
+      <span
+        style={{
+          fontFamily: "var(--sans)",
+          fontSize: "11px",
+          fontWeight: "600",
+          letterSpacing: "3px",
+          color: "var(--accentTaupeDark)",
+          textTransform: "uppercase",
+          display: "block",
+        }}
+      >
+        FAITH ANSWERED
+      </span>
+    </div>
+  );
+}
+
+function SmallBrandHeader() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        textAlign: "left",
+      }}
+    >
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 100 100"
+        style={{ overflow: "visible", flexShrink: 0 }}
+      >
+        <defs>
+          <linearGradient
+            id="gold-cross-sm"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="100%"
+          >
+            <stop offset="0%" stopColor="#e5c8a2" />
+            <stop offset="50%" stopColor="#b79a73" />
+            <stop offset="100%" stopColor="#8d6f46" />
+          </linearGradient>
+          <radialGradient id="cross-glow-sm" cx="50%" cy="40%" r="30%">
+            <stop offset="0%" stopColor="#fff6e8" stopOpacity="1" />
+            <stop offset="60%" stopColor="#f7e1c8" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#f7e1c8" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="40" r="24" fill="url(#cross-glow-sm)" />
+        <rect
+          x="47.5"
+          y="10"
+          width="5"
+          height="60"
+          rx="2.5"
+          fill="url(#gold-cross-sm)"
+        />
+        <rect
+          x="30"
+          y="28"
+          width="40"
+          height="5"
+          rx="2.5"
+          fill="url(#gold-cross-sm)"
+        />
+      </svg>
+      <div>
+        <span
+          style={{
+            fontFamily: "var(--serif)",
+            fontSize: "18px",
+            fontWeight: "400",
+            color: "var(--textPrimary)",
+            letterSpacing: "0.5px",
+            lineHeight: "1",
+            display: "block",
+          }}
+        >
+          Sayved
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--sans)",
+            fontSize: "7px",
+            fontWeight: "600",
+            letterSpacing: "1px",
+            color: "var(--accentTaupeDark)",
+            textTransform: "uppercase",
+            display: "block",
+            marginTop: "-1px",
+          }}
+        >
+          FAITH ANSWERED
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function OnboardingCross() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 100 100"
+      style={{ overflow: "visible", margin: "0 auto 12px", display: "block" }}
+    >
+      <defs>
+        <linearGradient id="gold-cross-ob" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#e5c8a2" />
+          <stop offset="50%" stopColor="#b79a73" />
+          <stop offset="100%" stopColor="#8d6f46" />
+        </linearGradient>
+        <radialGradient id="cross-glow-ob" cx="50%" cy="40%" r="30%">
+          <stop offset="0%" stopColor="#fff6e8" stopOpacity="1" />
+          <stop offset="60%" stopColor="#f7e1c8" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#f7e1c8" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="50" cy="40" r="24" fill="url(#cross-glow-ob)" />
+      <rect
+        x="47.5"
+        y="10"
+        width="5"
+        height="60"
+        rx="2.5"
+        fill="url(#gold-cross-ob)"
+      />
+      <rect
+        x="30"
+        y="28"
+        width="40"
+        height="5"
+        rx="2.5"
+        fill="url(#gold-cross-ob)"
+      />
+    </svg>
+  );
+}
+
 function Mark({ small = false }) {
   return (
     <span className={small ? "mark mark-small" : "mark"} aria-hidden="true">
@@ -620,10 +831,7 @@ function TopBar({ title, eyebrow, onBack, action, go }) {
           <ChevronLeft size={20} />
         </IconButton>
       ) : (
-        <div className="brand-lockup">
-          <Mark small />
-          <span>Sayved</span>
-        </div>
+        <SmallBrandHeader />
       )}
       <div className="top-title">
         {eyebrow && <span>{eyebrow}</span>}
@@ -1104,27 +1312,7 @@ function App() {
         >
           <div className="ambient-photo" />
           <div style={{ textAlign: "center", marginBottom: "30px", zIndex: 2 }}>
-            <Mark />
-            <h1
-              style={{
-                fontFamily: "var(--serif)",
-                fontSize: "36px",
-                margin: "16px 0 4px",
-                color: "var(--textPrimary)",
-              }}
-            >
-              Sayved
-            </h1>
-            <p
-              style={{
-                margin: 0,
-                fontSize: "14px",
-                fontWeight: "600",
-                color: "var(--accentTaupeDark)",
-              }}
-            >
-              Encrypted Private Vault
-            </p>
+            <BrandHeader size={72} />
           </div>
 
           <div
@@ -1329,10 +1517,8 @@ function App() {
         <section className="screen-content onboarding">
           {onboardingStep === "welcome" && (
             <>
-              <div className="onboarding-mark">
-                <Mark />
-                <h1 style={{ marginTop: "16px" }}>Sayved</h1>
-                <p>Walked with.</p>
+              <div style={{ margin: "20px 0 10px" }}>
+                <BrandHeader size={72} />
               </div>
               <div className="question-block" style={{ marginTop: "16px" }}>
                 <h2
@@ -1378,7 +1564,7 @@ function App() {
           {onboardingStep === "privacy" && (
             <>
               <div className="onboarding-mark">
-                <Mark />
+                <OnboardingCross />
                 <h1 style={{ marginTop: "16px" }}>Privacy Promise</h1>
                 <p>Your walk belongs to you.</p>
               </div>
@@ -1420,7 +1606,7 @@ function App() {
           {onboardingStep === "rhythm" && (
             <>
               <div className="onboarding-mark">
-                <Mark />
+                <OnboardingCross />
                 <h1 style={{ marginTop: "16px" }}>Devotional Rhythm</h1>
                 <p>Quiet anchors, no engagement bait.</p>
               </div>
@@ -1461,7 +1647,7 @@ function App() {
           {onboardingStep === "consent" && (
             <>
               <div className="onboarding-mark">
-                <Mark />
+                <OnboardingCross />
                 <h1 style={{ marginTop: "16px" }}>Disclosures & Consent</h1>
                 <p>Grounding our expectations.</p>
               </div>
@@ -1572,8 +1758,8 @@ function App() {
       {screen === "talk" && (
         <section className="screen-content talk-screen has-composer">
           <TopBar
-            title="Talk"
-            eyebrow="One continuous Director conversation"
+            title=""
+            eyebrow=""
             go={go}
             action={
               <IconButton
@@ -1586,7 +1772,36 @@ function App() {
             }
           />
 
-          {/* 3. Source Switcher / Composer Layer */}
+          {/* 3. Page Header */}
+          <div style={{ textAlign: "center", margin: "16px 0 20px" }}>
+            <span
+              style={{
+                fontFamily: "var(--sans)",
+                fontSize: "11px",
+                fontWeight: "600",
+                letterSpacing: "1.5px",
+                color: "var(--accentTaupeDark)",
+                textTransform: "uppercase",
+                display: "block",
+                marginBottom: "4px",
+              }}
+            >
+              One continuous Director conversation
+            </span>
+            <h1
+              style={{
+                fontFamily: "var(--serif)",
+                fontSize: "36px",
+                fontWeight: "400",
+                margin: 0,
+                color: "var(--textPrimary)",
+              }}
+            >
+              Talk
+            </h1>
+          </div>
+
+          {/* 4. Source Switcher / Composer Layer */}
           <div
             className="source-switcher"
             role="tablist"
@@ -1629,17 +1844,37 @@ function App() {
             {messages.length === 0 ? (
               <div
                 style={{
-                  padding: "40px 20px",
+                  background: "rgba(254, 253, 252, 0.85)",
+                  border: "1px solid var(--borderSoft)",
+                  borderRadius: "24px",
+                  padding: "30px 20px",
+                  boxShadow: "0 10px 24px rgba(74, 66, 56, 0.08)",
                   textAlign: "center",
-                  color: "var(--textSecondary)",
+                  backgroundImage: `linear-gradient(rgba(254, 253, 252, 0.76), rgba(254, 253, 252, 0.94)), url("/assets/sayved_main_background.png")`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
                 }}
               >
-                <Mark small style={{ marginBottom: "16px" }} />
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    background: "var(--surfaceWhite)",
+                    display: "grid",
+                    placeItems: "center",
+                    margin: "0 auto 20px",
+                    boxShadow: "0 4px 12px rgba(74, 66, 56, 0.12)",
+                  }}
+                >
+                  <Plus size={20} style={{ color: "var(--accentTaupe)" }} />
+                </div>
+
                 <h2
                   style={{
                     fontFamily: "var(--serif)",
-                    fontSize: "20px",
-                    marginTop: "12px",
+                    fontSize: "24px",
+                    margin: "0 0 8px",
                     color: "var(--textPrimary)",
                   }}
                 >
@@ -1649,7 +1884,9 @@ function App() {
                   style={{
                     fontSize: "13px",
                     lineHeight: "1.6",
-                    margin: "8px 0 20px",
+                    color: "var(--textSecondary)",
+                    margin: "0 0 24px",
+                    padding: "0 10px",
                   }}
                 >
                   You are starting a fresh walk. The Director is here with you.
@@ -1659,9 +1896,7 @@ function App() {
                 <div
                   style={{
                     display: "grid",
-                    gap: "8px",
-                    maxWidth: "280px",
-                    margin: "0 auto",
+                    gap: "10px",
                   }}
                 >
                   {[
@@ -1673,16 +1908,35 @@ function App() {
                       key={suggestion}
                       onClick={() => setComposer(suggestion)}
                       style={{
-                        padding: "10px",
-                        fontSize: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        padding: "14px 20px",
+                        fontSize: "13px",
+                        fontWeight: "500",
                         border: "1px solid var(--borderSoft)",
-                        borderRadius: "8px",
+                        borderRadius: "16px",
                         background: "var(--surfaceWhite)",
-                        color: "var(--accentTaupeDark)",
+                        color: "var(--textPrimary)",
                         textAlign: "left",
+                        boxShadow: "0 2px 6px rgba(74, 66, 56, 0.02)",
+                        transition: "transform 0.12s ease",
                       }}
                     >
-                      "{suggestion}"
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ color: "var(--textMuted)", flexShrink: 0 }}
+                      >
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                      </svg>
+                      <span style={{ flex: 1 }}>"{suggestion}"</span>
                     </button>
                   ))}
                 </div>
@@ -1780,36 +2034,55 @@ function App() {
             )}
           </div>
 
-          {/* Theological tool buttons to access compare/disputation */}
           <div
             style={{
-              display: "flex",
-              gap: "8px",
-              margin: "20px 0 10px",
-              justifyContent: "center",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "10px",
+              margin: "20px 0 14px",
             }}
           >
             <button
               className="quiet-button"
               style={{
-                borderRadius: "20px",
-                minHeight: "34px",
-                padding: "0 12px",
+                borderRadius: "16px",
+                minHeight: "44px",
+                padding: "0 16px",
+                background: "var(--surfaceWhite)",
+                border: "1px solid var(--borderSoft)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                color: "var(--accentTaupeDark)",
+                fontWeight: "500",
+                fontSize: "13px",
+                boxShadow: "0 2px 6px rgba(74, 66, 56, 0.02)",
               }}
               onClick={() => go("compare", "talk")}
             >
-              <Sparkles size={13} /> Compare
+              <Sparkles size={14} /> Compare
             </button>
             <button
               className="quiet-button"
               style={{
-                borderRadius: "20px",
-                minHeight: "34px",
-                padding: "0 12px",
+                borderRadius: "16px",
+                minHeight: "44px",
+                padding: "0 16px",
+                background: "var(--surfaceWhite)",
+                border: "1px solid var(--borderSoft)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                color: "var(--accentTaupeDark)",
+                fontWeight: "500",
+                fontSize: "13px",
+                boxShadow: "0 2px 6px rgba(74, 66, 56, 0.02)",
               }}
               onClick={() => go("disputation", "talk")}
             >
-              <AlertTriangle size={13} /> Disputation
+              <AlertTriangle size={14} /> Disputation
             </button>
           </div>
 

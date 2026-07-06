@@ -76,11 +76,11 @@ button {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(rgba(248, 245, 241, 0.82), rgba(248, 245, 241, 0.96)),
-    url("/assets/sayved_main_background.jpg");
+    linear-gradient(rgba(254, 253, 252, 0.88), rgba(254, 253, 252, 0.96)),
+    url("/assets/sayved_main_background.png");
   background-size: cover;
   background-position: center top;
-  opacity: 0.88;
+  opacity: 0.95;
   pointer-events: none;
 }
 
