@@ -1,44 +1,52 @@
-export const pastors = [
+export const teachers = [
   {
-    id: "poju",
-    name: "Jerry Eze",
-    ministry: "Streams of Joy International",
-    specialty: "Faith & Grace",
+    id: "tb-joshua",
+    name: "Prophet T.B. Joshua",
+    ministry: "The Synagogue, Church Of All Nations",
+    type: "Estate",
+    status: "estate",
+    relationship: "Estate - official sources only",
     image: "/assets/pastor_poju.jpg",
-    bio: "Pastor Jerry Eze is the founder and president of Streams of Joy International. He is known for the global prayer movement NSPPD, preaching faith, miracles, and spiritual alignment.",
-    grounding: [
-      "NSPPD morning prayer archives",
-      "Preachings on faith and breakthrough",
-      "Streams of Joy ministries materials"
-    ],
-    topics: ["Faith", "Prayer", "Miracles", "Breakthrough"]
+    topics: ["Faith", "Healing", "Prayer", "Hope"],
+    officialSources: ["Official SCOAN channel", "SCOAN sermon library", "Emmanuel TV public routes"],
+    canDeepRag: false,
   },
   {
-    id: "ita",
-    name: "Bishop Feb Idahosa",
-    ministry: "Church of God Ministries",
-    specialty: "Wisdom & Living",
-    image: "/assets/pastor_ita.jpg",
-    bio: "Bishop Feb Idahosa is a prominent Christian leader and president of Benson Idahosa University. He carries a message of wisdom, leadership, character development, and academic excellence.",
-    grounding: [
-      "Church of God Ministries archives",
-      "Seminars on wisdom and leadership",
-      "Benson Idahosa teachings"
-    ],
-    topics: ["Wisdom", "Leadership", "Character", "Education"]
-  },
-  {
-    id: "mike",
+    id: "pastor-chris",
     name: "Pastor Chris Oyakhilome",
-    ministry: "LoveWorld Incorporated",
-    specialty: "Hope & Strength",
+    ministry: "LoveWorld Incorporated / Christ Embassy",
+    type: "Living teacher",
+    status: "unverified",
+    relationship: "Not yet affiliated with Sayved",
     image: "/assets/pastor_mike.jpg",
-    bio: "Pastor Chris Oyakhilome is the president of LoveWorld Inc. and Christ Embassy. He is a world-renowned teacher, author, and healing minister, preaching hope, faith, and victory in Christ.",
-    grounding: [
-      "Rhapsody of Realities daily devotionals",
-      "LoveWorld television teaching archives",
-      "Atmosphere for Miracles series"
-    ],
-    topics: ["Hope", "Faith", "Healing", "Spiritual Victory"]
-  }
+    topics: ["Faith", "Confession", "Healing", "Prayer"],
+    officialSources: ["LoveWorld official platforms", "Rhapsody public routes", "Official YouTube route"],
+    canDeepRag: false,
+  },
+  {
+    id: "ea-adeboye",
+    name: "Pastor E.A. Adeboye",
+    ministry: "Redeemed Christian Church of God",
+    type: "Living teacher",
+    status: "unverified",
+    relationship: "Not yet affiliated with Sayved",
+    image: "/assets/pastor_ita.jpg",
+    topics: ["Holiness", "Prayer", "Wisdom", "Family"],
+    officialSources: ["RCCG official channels", "Open Heavens public routes", "Official sermon routes"],
+    canDeepRag: false,
+  },
+  {
+    id: "benson-idahosa",
+    name: "Archbishop Benson Idahosa",
+    ministry: "Church of God Mission International",
+    type: "Estate",
+    status: "estate",
+    relationship: "Estate - official sources only",
+    image: "/assets/pastor_ita.jpg",
+    topics: ["Faith", "Leadership", "Evangelism", "Courage"],
+    officialSources: ["Official ministry routes", "Estate-approved public materials", "Legacy library routes"],
+    canDeepRag: false,
+  },
 ];
+
+export const pastors = teachers;

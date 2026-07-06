@@ -1,1528 +1,843 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ChevronLeft, 
-  Settings, 
-  Sparkles, 
-  Send, 
-  Mic, 
-  Plus, 
-  BookOpen, 
-  User, 
-  Home, 
-  MessageSquare, 
-  Bookmark, 
-  Copy, 
-  Share2, 
-  ChevronDown, 
-  MoreHorizontal, 
-  Volume2, 
-  RefreshCw, 
-  Image as ImageIcon, 
-  Play, 
-  Pause, 
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  Archive,
+  BookOpen,
   Check,
-  Heart,
-  ExternalLink
-} from 'lucide-react';
-import { pastors } from './pastors';
+  ChevronLeft,
+  Circle,
+  Download,
+  Edit3,
+  ExternalLink,
+  FileText,
+  Headphones,
+  HeartHandshake,
+  Home,
+  Library,
+  LockKeyhole,
+  Mic,
+  MoreHorizontal,
+  Pause,
+  Play,
+  Plus,
+  Radio,
+  Search,
+  Send,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  UserRound,
+  UsersRound,
+  Volume2,
+  X,
+} from "lucide-react";
+import { teachers } from "./pastors";
 
-// Mock Suggestions
-const SUGGESTION_POOL = [
-  "Strength for today",
-  "Overcoming fear",
-  "Purpose in life",
-  "Help me pray",
-  "Wisdom for work",
-  "Finding peace",
-  "Healing from pain",
-  "Anxiety about the future",
-  "Building relationships"
+const tabs = [
+  { id: "talk", label: "Talk", icon: Home },
+  { id: "follow", label: "Follow", icon: UsersRound },
+  { id: "walk", label: "My Walk", icon: UserRound },
 ];
 
-// Mock Scripture database
-const SCRIPTURES = {
-  "philippians_4_6_7": {
-    reference: "Philippians 4:6-7",
-    text: "Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God. And the peace of God, which transcends all understanding, will guard your hearts and your minds in Christ Jesus.",
-    explanation: "This passage teaches that anxiety is replaced by God's supernatural peace when we surrender our worries through prayer with a thankful heart. Pastor Poju emphasizes that thanksgiving is the ultimate proof of faith.",
-    sermon: "Walking Through Anxiety",
-    timestamp: "45:12"
-  },
-  "2_timothy_1_7": {
-    reference: "2 Timothy 1:7",
-    text: "For God has not given us a spirit of fear, but of power and of love and of a sound mind.",
-    explanation: "Fear does not originate from God. This verse grounds our identity in the spiritual authority (power), connection (love), and mental clarity (sound mind) that God provides. Pastor Mike highlights this as a vital weapon in spiritual renewal.",
-    sermon: "Victory in Your Mind",
-    timestamp: "22:08"
-  },
-  "jeremiah_29_11": {
-    reference: "Jeremiah 29:11",
-    text: "For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.",
-    explanation: "Even in moments of exile or confusion, God's intentions are benevolent. He is actively planning our restoration. Pastor Ita teaches that wisdom lies in aligning our expectations with God's ultimate plan.",
-    sermon: "Patience in the Middle",
-    timestamp: "33:15"
-  },
-  "mark_4_39": {
-    reference: "Mark 4:39",
-    text: "He got up, rebuked the wind and said to the waves, 'Quiet! Be still!' Then the wind died down and it was completely calm.",
-    explanation: "Jesus has absolute authority over the storms of life. Tapping into His calm allows us to experience quiet in the midst of turmoil. Pastor Poju often references this as the power of spoken word and inner rest.",
-    sermon: "Peace in the Storm",
-    timestamp: "18:40"
-  },
-  "proverbs_4_23": {
-    reference: "Proverbs 4:23",
-    text: "Above all else, guard your heart, for everything you do flows from it.",
-    explanation: "Our inner life—our thoughts, motives, and desires—shapes the entire course of our lives. Guarding our heart means standing watch over what we allow to take root in our minds. General faith-based teachings focus heavily on this foundational wisdom.",
-    sermon: "Guarding Your Heart (General Wisdom)",
-    timestamp: "15:30"
-  },
-  "romans_8_28": {
-    reference: "Romans 8:28",
-    text: "And we know that in all things God works for the good of those who love him, who have been called according to his purpose.",
-    explanation: "This scripture provides absolute assurance that no event, trial, or season is outside God's redeeming power. He orchestrates all details of our journey for our ultimate spiritual growth and good.",
-    sermon: "All Things Working Together",
-    timestamp: "28:45"
-  }
+const scripture = {
+  id: "psalm-119-105",
+  reference: "Psalm 119:105",
+  text: "Your word is a lamp for my feet, a light on my path.",
+  why: "Used as a quiet image of guidance. It grounds the answer without turning the moment into a proof-text dump.",
 };
 
-// Mock Devotion Content
-const DEVOTION = {
-  title: "Tending the Soil of the Heart",
-  readingTime: "3 min read",
-  scriptureRef: "Luke 8:15",
-  scriptureText: "But the seed on good soil stands for those with a noble and good heart, who hear the word, retain it, and by persevering produce a crop.",
-  reflection: "In the busyness of modern life, the soil of our hearts easily becomes hard, shallow, or choked with thorns. The daily worries, noise of social media, and pursuits of material security can distract us from our true spiritual anchor. To grow, we must cultivate quietness. We must hear the Word, allow it to settle deep within, and protect it from daily distractions. Growth is not immediate; it requires patience, rest, and consistency. When we take five minutes daily to seek Him, we prepare the soil of our lives to yield abundance.",
-  prayer: "Lord, soften the soil of my heart today. Help me clear away the weeds of worry and the rocks of pride. Grant me the grace to sit in stillness, to hear Your voice, and to carry Your peace into every interaction. Strengthen my patience as You work beneath the surface. In Jesus' name, Amen."
-};
-
-// Mock Initial Chat Message
-const INITIAL_MESSAGES = [
+const memoryItems = [
   {
-    id: "initial-assistant",
-    sender: "assistant",
-    text: "Hello! How can I help you grow in faith and walk closer with God today? Feel free to ask me anything about scripture, prayer, or topics on your heart.",
-    time: "9:40 AM"
-  }
+    id: "memory-fear-behind",
+    type: "Theme",
+    title: "Fear of falling behind",
+    body: "A repeated worry that life is moving faster than your capacity to respond.",
+    source: "Talk, July 5",
+  },
+  {
+    id: "memory-strength",
+    type: "Strength",
+    title: "You return to prayer before decisions",
+    body: "You tend to pause, ask for wisdom, and look for the next faithful step before acting.",
+    source: "Talk, June 30",
+  },
+  {
+    id: "memory-commitment",
+    type: "Commitment",
+    title: "Morning quiet rhythm",
+    body: "You wanted a short morning practice that does not feel like pressure or performance.",
+    source: "The Well",
+  },
 ];
 
-export default function App() {
-  const [activeView, setActiveView] = useState("auth"); // auth, home, new-chat, chat, devotion, scripture, profile, chats-list
-  const [selectedPastor, setSelectedPastor] = useState(null);
-  const [promptText, setPromptText] = useState("");
-  const [suggestions, setSuggestions] = useState(SUGGESTION_POOL.slice(0, 3));
-  const [threads, setThreads] = useState([
-    {
-      id: "thread-1",
-      title: "Dealing with Anxiety",
-      pastorId: "poju",
-      date: "2h ago",
-      messages: [
-        { id: "m1", sender: "user", text: "How do I handle fear and anxiety about the future?", time: "10:12 AM" },
-        { 
-          id: "m2", 
-          sender: "assistant", 
-          text: "God is not the author of fear, but of peace and a sound mind (2 Timothy 1:7). When you feel anxious, bring your worries to Him in prayer, and He will give you His peace that surpasses all understanding (Philippians 4:6-7). Trust that He has good plans for you, plans to prosper you and not to harm you, plans to give you hope and a future (Jeremiah 29:11). Faith is acting in confidence that God's plans are already established.", 
-          time: "10:13 AM",
-          scriptures: ["philippians_4_6_7", "2_timothy_1_7", "jeremiah_29_11"],
-          sermonUrl: "https://www.youtube.com/watch?v=1oW_W1W86Qk"
-        }
-      ]
-    },
-    {
-      id: "thread-2",
-      title: "Patience and Growth",
-      pastorId: "ita",
-      date: "Yesterday",
-      messages: [
-        { id: "m3", sender: "user", text: "Why does it take so long for prayers to be answered?", time: "Yesterday" },
-        { 
-          id: "m4", 
-          sender: "assistant", 
-          text: "In the face of difficulty, we must anchor ourselves in divine wisdom. Luke 8:15 teaches us that a noble and good heart retains the Word and produces a harvest through perseverance. When your path seems uncertain, take shelter in His promises (Jeremiah 29:11). Ground your daily decisions in scripture, clear away the thorns of distractions, and let your soul rest in the knowledge that God's plans are designed to guide you securely.", 
-          time: "Yesterday",
-          scriptures: ["jeremiah_29_11", "mark_4_39"],
-          sermonUrl: "https://www.youtube.com/watch?v=3g8K1U1y0bA"
-        }
-      ]
-    },
-    {
-      id: "thread-3",
-      title: "Guarding My Mind",
-      pastorId: null, // General guidance
-      date: "Jun 30",
-      messages: [
-        { id: "m5", sender: "user", text: "How can I protect my peace and mind during busy times?", time: "Jun 30" },
-        { 
-          id: "m6", 
-          sender: "assistant", 
-          text: "Based on general faith-based teachings, in times of difficulty or uncertainty, we are reminded to guard our hearts with diligence, for everything we do flows from it (Proverbs 4:23). When anxiety rises, we can rest in the promise that all things work together for the good of those who love God and are called according to His purpose (Romans 8:28). True strength is found in quietness and confidence, allowing His peace to anchor your soul in every storm.", 
-          time: "Jun 30",
-          scriptures: ["proverbs_4_23", "romans_8_28"],
-          video: {
-            title: "Finding Peace in Turbulent Times (General Teaching)",
-            url: "https://www.youtube.com/watch?v=1oW_W1W86Qk",
-            duration: "12:40"
-          }
-        }
-      ]
-    }
-  ]);
-  const [activeThreadId, setActiveThreadId] = useState("thread-1");
-  const [isTyping, setIsTyping] = useState(false);
-  const [typingStateIndex, setTypingStateIndex] = useState(0);
-  const [ttsPlaying, setTtsPlaying] = useState(false);
-  const [savedConversations, setSavedConversations] = useState([
-    { id: "saved-1", title: "Dealing with Anxiety", pastorName: "Pastor Poju", date: "Jul 2, 2026" },
-    { id: "saved-2", title: "Patience and Growth", pastorName: "Pastor Ita", date: "Jun 28, 2026" }
-  ]);
-  const [selectedScripture, setSelectedScripture] = useState(SCRIPTURES.philippians_4_6_7);
-  const [savedMsgIds, setSavedMsgIds] = useState(new Set());
-  const [isRecording, setIsRecording] = useState(false);
+const flowScreens = [
+  "Onboarding / Privacy Promise",
+  "Talk / Director Conversation",
+  "Source Switcher / Composer",
+  "Scripture / References",
+  "Teacher Discovery",
+  "Teacher Profile",
+  "Official Source Player",
+  "The Well",
+  "Today's Devotion",
+  "Memory / My Walk",
+  "Memory Detail / Edit / Forget",
+  "Crisis Hand-Off",
+  "Settings / Legal",
+  "Council Builder",
+  "Council Session",
+  "Echo Sermon Capture",
+  "Echo Seven-Day Rhythm",
+  "Spiritual Autobiography Preview",
+  "Teacher Request Confirmation",
+  "Compare Teachings",
+  "Disputation",
+  "Bible Reader / Search",
+  "Recovery Contact Setup",
+  "Pastor Dashboard Preview",
+];
 
-  const chatEndRef = useRef(null);
-
-  const activeThread = threads.find(t => t.id === activeThreadId);
-  const chatMessages = activeThread ? activeThread.messages : [];
-  const activePastor = activeThread ? pastors.find(p => p.id === activeThread.pastorId) : null;
-
-  // Auto-scroll chat to bottom
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chatMessages, isTyping]);
-
-  // Lock document-level scrolling & prevent viewport overscroll on iOS
-  useEffect(() => {
-    const handleTouchMove = (e) => {
-      // Find the currently active scroll container
-      const scrollable = document.querySelector('.screen-content');
-      if (scrollable) {
-        // If touch gesture is outside the scrollable content, block it
-        if (!scrollable.contains(e.target)) {
-          if (e.cancelable) {
-            e.preventDefault();
-          }
-        }
-      } else {
-        // Block all if there is no scrollable area
-        if (e.cancelable) {
-          e.preventDefault();
-        }
-      }
-    };
-
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    return () => {
-      document.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, []);
-
-  // Handle suggest chip shuffle
-  const handleShuffleSuggestions = () => {
-    const shuffled = [...SUGGESTION_POOL].sort(() => 0.5 - Math.random());
-    setSuggestions(shuffled.slice(0, 3));
-  };
-
-  // Mock Voice Recording simulation
-  const handleToggleVoice = () => {
-    if (isRecording) {
-      setIsRecording(false);
-      setPromptText("Help me find peace and strength in the face of sudden life changes and worry.");
-    } else {
-      setIsRecording(true);
-      setPromptText("Listening...");
-      setTimeout(() => {
-        setIsRecording(false);
-        setPromptText("Help me find peace and strength in the face of sudden life changes and worry.");
-      }, 3000);
-    }
-  };
-
-  // Run AI Response simulator
-  const handleSendPrompt = (textToSend) => {
-    const queryText = textToSend || promptText;
-    if (!queryText.trim() || queryText === "Listening...") return;
-
-    // Tapping send clears prompt input
-    setPromptText("");
-
-    // Add user message
-    const userMessage = {
-      id: `user-${Date.now()}`,
-      sender: "user",
-      text: queryText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    let targetThreadId = activeThreadId;
-
-    if (activeView === "new-chat") {
-      // Create a new thread dynamically
-      targetThreadId = `thread-${Date.now()}`;
-      const newThread = {
-        id: targetThreadId,
-        title: queryText.length > 25 ? queryText.substring(0, 25) + "..." : queryText,
-        pastorId: selectedPastor ? selectedPastor.id : null,
-        date: "Just now",
-        messages: [userMessage]
-      };
-      setThreads(prev => [newThread, ...prev]);
-      setActiveThreadId(targetThreadId);
-      setActiveView("chat");
-    } else {
-      // Append to existing thread
-      setThreads(prev => prev.map(t => {
-        if (t.id === targetThreadId) {
-          return {
-            ...t,
-            date: "Just now",
-            messages: [...t.messages, userMessage]
-          };
-        }
-        return t;
-      }));
-    }
-
-    setIsTyping(true);
-    setTypingStateIndex(0);
-
-    const currentPastor = activeView === "new-chat" ? selectedPastor : (activeThread ? pastors.find(p => p.id === activeThread.pastorId) : null);
-
-    // Dynamic loading messages
-    const loadingStates = currentPastor
-      ? [
-          `Searching ${currentPastor.name}'s teachings...`,
-          "Grounding answer in Scripture...",
-          "Preparing scriptural response..."
-        ]
-      : [
-          "Searching general faith-based teachings...",
-          "Grounding in Scriptures...",
-          "Preparing general guidance..."
-        ];
-
-    const stateTimer = setInterval(() => {
-      setTypingStateIndex(prev => {
-        if (prev < loadingStates.length - 1) {
-          return prev + 1;
-        } else {
-          clearInterval(stateTimer);
-          return prev;
-        }
-      });
-    }, 900);
-
-    // Simulate AI response generation
-    setTimeout(() => {
-      clearInterval(stateTimer);
-      setIsTyping(false);
-
-      let responseText = "";
-      let scriptureChips = [];
-      let videoReference = null;
-      let sermonLink = null;
-
-      // Grounding logic depending on selected pastor
-      if (currentPastor) {
-        if (currentPastor.id === "poju") {
-          responseText = "God is not the author of fear, but of peace and a sound mind (2 Timothy 1:7). When you feel anxious, bring your worries to Him in prayer, and He will give you His peace that surpasses all understanding (Philippians 4:6-7). Trust that He has good plans for you, plans to prosper you and not to harm you, plans to give you hope and a future (Jeremiah 29:11). Faith is acting in confidence that God's plans are already established.";
-          scriptureChips = ["philippians_4_6_7", "2_timothy_1_7", "jeremiah_29_11"];
-          sermonLink = "https://www.youtube.com/watch?v=1oW_W1W86Qk";
-        } else if (currentPastor.id === "ita") {
-          responseText = "In the face of difficulty, we must anchor ourselves in divine wisdom. Luke 8:15 teaches us that a noble and good heart retains the Word and produces a harvest through perseverance. When your path seems uncertain, take shelter in His promises (Jeremiah 29:11). Ground your daily decisions in scripture, clear away the thorns of distractions, and let your soul rest in the knowledge that God's plans are designed to guide you securely.";
-          scriptureChips = ["jeremiah_29_11", "mark_4_39"];
-          sermonLink = "https://www.youtube.com/watch?v=3g8K1U1y0bA";
-        } else {
-          responseText = "Fear and adversity can feel overwhelming, but God's promise is clear: He has given us a spirit of power, love, and self-discipline, not of fear (2 Timothy 1:7). Let us remind ourselves of His power to calm every storm (Mark 4:39). Have courage! When you stand firm and declare His victory, He will strengthen you and give you a future filled with hope. Lean into prayer and let His strength flow through your family.";
-          scriptureChips = ["2_timothy_1_7", "mark_4_39", "jeremiah_29_11"];
-          sermonLink = "https://www.youtube.com/watch?v=Fq1vj1k7x-0";
-        }
-      } else {
-        // General teachings
-        responseText = "Based on general faith-based teachings, in times of difficulty or uncertainty, we are reminded to guard our hearts with diligence, for everything we do flows from it (Proverbs 4:23). When anxiety rises, we can rest in the promise that all things work together for the good of those who love God and are called according to His purpose (Romans 8:28). True strength is found in quietness and confidence, allowing His peace to anchor your soul in every storm.";
-        scriptureChips = ["proverbs_4_23", "romans_8_28"];
-        videoReference = {
-          title: "Finding Peace in Turbulent Times (General Teaching)",
-          url: "https://www.youtube.com/watch?v=1oW_W1W86Qk",
-          duration: "12:40"
-        };
-      }
-
-      const assistantMessage = {
-        id: `assistant-${Date.now()}`,
-        sender: "assistant",
-        text: responseText,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        scriptures: scriptureChips,
-        video: videoReference,
-        sermonUrl: sermonLink
-      };
-
-      setThreads(prev => prev.map(t => {
-        if (t.id === targetThreadId) {
-          return {
-            ...t,
-            messages: [...t.messages, assistantMessage]
-          };
-        }
-        return t;
-      }));
-    }, 3200);
-  };
-
-  const handleCopyMessage = (text) => {
-    navigator.clipboard.writeText(text);
-    alert("Message copied to clipboard!");
-  };
-
-  const handleSaveMessage = (msgId) => {
-    setSavedMsgIds(prev => {
-      const next = new Set(prev);
-      if (next.has(msgId)) {
-        next.delete(msgId);
-      } else {
-        next.add(msgId);
-      }
-      return next;
-    });
-  };
-
-  const handleOpenScripture = (key) => {
-    if (SCRIPTURES[key]) {
-      setSelectedScripture(SCRIPTURES[key]);
-      setActiveView("scripture");
-    }
-  };
-
-  // Background asset based on view state for visual variety & cohesion
-  const getBackgroundImage = () => {
-    switch (activeView) {
-      case "auth":
-        return "/assets/bg_auth.jpg";
-      case "home":
-        return "/assets/sayved_main_background.jpg";
-      case "new-chat":
-        return "/assets/bg_new_chat.jpg";
-      case "chat":
-        return "/assets/bg_new_chat.jpg";
-      default:
-        return "/assets/bg_auth.jpg";
-    }
-  };
-
-  const activeBg = getBackgroundImage();
-
+function Mark({ small = false }) {
   return (
-    <div className="app-container">
-      <div className="phone-viewport">
-        {/* Dynamic Background */}
-        <div 
-          className="screen-bg" 
-          style={{ backgroundImage: `url(${activeBg})` }}
-        />
-        <div className="screen-bg-overlay" />
+    <span className={small ? "mark mark-small" : "mark"} aria-hidden="true">
+      <span />
+    </span>
+  );
+}
 
-        {/* Viewport Screen Content */}
-        <div className="screen-wrapper">
-          
-          {/* ================= AUTH VIEW ================= */}
-          {activeView === "auth" && (
-            <div className="screen-content screen-elements" style={{ justifyContent: 'center', paddingBottom: 24 }}>
-              <div style={{ textAlign: 'center', marginBottom: 40 }}>
-                {/* Stylized Gold Cross Logo */}
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2V22" stroke="#B79A73" strokeWidth="2.5" strokeLinecap="round"/>
-                    <path d="M5 9H19" stroke="#B79A73" strokeWidth="2.5" strokeLinecap="round"/>
-                    <path d="M12 5L15 9H9L12 5Z" fill="#B79A73"/>
-                    <path d="M12 19L15 15H9L12 19Z" fill="#B79A73"/>
-                    <path d="M5 9L9 6V12L5 9Z" fill="#B79A73"/>
-                    <path d="M19 9L15 6V12L19 9Z" fill="#B79A73"/>
-                  </svg>
-                </div>
-                
-                <h1 className="brand-logo serif-display" style={{ fontSize: 38, marginBottom: 4 }}>Sayved</h1>
-                <p style={{ 
-                  fontFamily: 'var(--font-sans)', 
-                  fontSize: 12, 
-                  fontWeight: 700, 
-                  color: 'var(--color-accent-taupe)', 
-                  letterSpacing: 2, 
-                  textTransform: 'uppercase',
-                  marginBottom: 24
-                }}>Faith. Answered.</p>
+function IconButton({ children, label, onClick, tone = "" }) {
+  return (
+    <button className={`icon-button ${tone}`} onClick={onClick} aria-label={label} title={label}>
+      {children}
+    </button>
+  );
+}
 
-                <p style={{ 
-                  fontSize: 15, 
-                  color: 'var(--color-text-secondary)', 
-                  lineHeight: 1.5,
-                  maxWidth: '280px',
-                  margin: '0 auto'
-                }}>
-                  Grow in faith. Get answers grounded in God's Word and trusted pastors.
-                </p>
-              </div>
+function TopBar({ title, eyebrow, onBack, action }) {
+  return (
+    <header className={`top-bar ${onBack ? "with-back" : "with-brand"}`}>
+      {onBack ? (
+        <IconButton label="Back" onClick={onBack}>
+          <ChevronLeft size={20} />
+        </IconButton>
+      ) : (
+        <div className="brand-lockup">
+          <Mark small />
+          <span>Sayved</span>
+        </div>
+      )}
+      <div className="top-title">
+        {eyebrow && <span>{eyebrow}</span>}
+        <strong>{title}</strong>
+      </div>
+      {action || (
+        <IconButton label="Settings">
+          <Settings size={18} />
+        </IconButton>
+      )}
+    </header>
+  );
+}
 
-              {/* Login Options */}
-              <div style={{ width: '100%', padding: '0 8px' }}>
-                <button className="auth-btn" onClick={() => setActiveView("home")}>
-                  <span className="auth-btn-icon" style={{ color: 'var(--color-accent-taupe)' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                  </span>
-                  Continue with Email
-                </button>
+function Pill({ children, tone = "" }) {
+  return <span className={`pill ${tone}`}>{children}</span>;
+}
 
-                <button className="auth-btn" onClick={() => setActiveView("home")}>
-                  <span className="auth-btn-icon" style={{ color: '#000' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.2.67-2.92 1.51-.62.73-1.16 1.87-1.01 2.98.66.05 1.83-.56 2.94-1.43z"/></svg>
-                  </span>
-                  Continue with Apple
-                </button>
+function TeacherBadge({ teacher }) {
+  const label = teacher.status === "estate" ? "Estate" : "Unverified";
+  return <Pill tone={teacher.status === "estate" ? "clay" : "beige"}>{label}</Pill>;
+}
 
-                <button className="auth-btn" onClick={() => setActiveView("home")}>
-                  <span className="auth-btn-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ color: '#EA4335' }}><path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.207 4.114-3.515 0-6.375-2.859-6.375-6.375s2.859-6.375 6.375-6.375c1.558 0 2.977.564 4.08 1.492l3.056-3.056C18.895 2.128 15.753 1.2 12.24 1.2 6.273 1.2 1.44 6.033 1.44 12s4.833 10.8 10.8 10.8c5.787 0 10.457-4.74 10.457-10.8 0-.727-.082-1.255-.164-1.714H12.24z"/></svg>
-                  </span>
-                  Continue with Google
-                </button>
+function SourceCard({ teacher, compact = false, onOpen, onRequest }) {
+  return (
+    <article className={`source-card ${compact ? "compact" : ""}`}>
+      <div>
+        <div className="meta-row">
+          <Library size={14} />
+          <span>Official route</span>
+        </div>
+        <h4>{teacher.name}</h4>
+        <p>{teacher.relationship}. Sayved can route you to public official sources, but will not pretend to speak from a licensed catalog.</p>
+      </div>
+      <div className="card-actions">
+        <button className="quiet-button" onClick={onOpen}>
+          <Play size={15} /> Play
+        </button>
+        <button className="quiet-button" onClick={onRequest}>
+          <Plus size={15} /> Request
+        </button>
+      </div>
+    </article>
+  );
+}
 
-                <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', color: 'var(--color-text-muted)' }}>
-                  <div style={{ flex: 1, height: 1, backgroundColor: 'var(--color-border-soft)' }} />
-                  <span style={{ padding: '0 12px', fontSize: 13, fontWeight: 500 }}>or</span>
-                  <div style={{ flex: 1, height: 1, backgroundColor: 'var(--color-border-soft)' }} />
-                </div>
-
-                <button className="auth-btn auth-btn-phone" onClick={() => setActiveView("home")}>
-                  <span className="auth-btn-icon" style={{ color: 'var(--color-accent-taupe-dark)' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                  </span>
-                  Continue with Phone
-                </button>
-              </div>
-
-              <div style={{ textAlign: 'center', marginTop: 32, fontSize: 13, color: 'var(--color-text-secondary)' }}>
-                Already have an account? <span onClick={() => setActiveView("home")} style={{ color: 'var(--color-accent-taupe-dark)', fontWeight: 600, cursor: 'pointer' }}>Sign in</span>
-              </div>
-            </div>
-          )}
-
-          {/* ================= HOME VIEW ================= */}
-          {activeView === "home" && (
-            <div className="screen-content screen-elements">
-              {/* Header branding */}
-              <div className="header-row">
-                <div className="brand-row">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2V22" stroke="#B79A73" strokeWidth="2.5" strokeLinecap="round"/>
-                    <path d="M5 9H19" stroke="#B79A73" strokeWidth="2.5" strokeLinecap="round"/>
-                  </svg>
-                  <span className="brand-logo serif-display">Sayved</span>
-                </div>
-                <button className="header-btn" onClick={() => setActiveView("profile")}>
-                  <User size={18} />
-                </button>
-              </div>
-
-              {/* Hero text */}
-              <div style={{ marginTop: 24, marginBottom: 28 }}>
-                <h2 className="serif-display" style={{ fontSize: 52, fontWeight: 500, lineHeight: 1.05, color: 'var(--color-text-primary)' }}>Faith.</h2>
-                <h2 className="serif-display" style={{ fontSize: 52, fontWeight: 500, lineHeight: 1.05, color: 'var(--color-text-primary)' }}>Answered.</h2>
-                <p style={{ 
-                  fontSize: 14.5, 
-                  lineHeight: 1.5, 
-                  color: 'var(--color-text-secondary)', 
-                  marginTop: 14,
-                  maxWidth: '320px'
-                }}>
-                  Ask, reflect, grow. Get faith-filled answers grounded in Scripture and the wisdom of trusted pastors.
-                </p>
-              </div>
-
-              {/* Search composer trigger */}
-              <div 
-                className="composer-input-wrapper" 
-                style={{ height: 56, marginBottom: 32, cursor: 'pointer' }}
-                onClick={() => setActiveView("new-chat")}
-              >
-                <div className="composer-input-sparkle">
-                  <Sparkles size={18} />
-                </div>
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 15, flex: 1 }}>
-                  Ask anything about faith...
-                </div>
-                <div className="composer-send-btn" style={{ width: 40, height: 40 }}>
-                  <Send size={15} />
-                </div>
-              </div>
-
-              {/* Pastor Carousel */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 12 }}>
-                <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600 }}>Select Teacher</h3>
-                <span onClick={() => setActiveView("new-chat")} style={{ fontSize: 13, color: 'var(--color-accent-taupe-dark)', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 2 }}>
-                  Compare teachers &gt;
-                </span>
-              </div>
-
-              <div className="pastor-cards-container">
-                {pastors.map(pastor => (
-                  <div 
-                    key={pastor.id} 
-                    className={`pastor-card ${selectedPastor?.id === pastor.id ? 'pastor-card-selected' : ''}`}
-                    onClick={() => {
-                      const next = selectedPastor?.id === pastor.id ? null : pastor;
-                      setSelectedPastor(next);
-                      if (next) {
-                        setActiveView("new-chat");
-                      }
-                    }}
-                    style={{ paddingBottom: 16 }}
-                  >
-                    <div className="pastor-avatar-wrapper">
-                      <img src={pastor.image} alt={pastor.name} className="pastor-avatar" />
-                      {selectedPastor?.id === pastor.id && (
-                        <div className="pastor-badge">
-                          <Check size={10} strokeWidth={3} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="pastor-name">{pastor.name}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Daily devotion card preview */}
-              <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600, marginTop: 12, marginBottom: 8 }}>Today's reflection</h3>
-              <div className="devotion-card" onClick={() => setActiveView("devotion")}>
-                <div className="devotion-left">
-                  <div className="devotion-tag">Today's Devotion</div>
-                  <h4 className="devotion-title serif-display" style={{ margin: '4px 0' }}>{DEVOTION.title}</h4>
-                  <p className="devotion-subtitle">{DEVOTION.readingTime} • Click to read</p>
-                </div>
-                <div className="devotion-right" style={{ backgroundImage: "url('/assets/devotion_preview.jpg')" }} />
-              </div>
-            </div>
-          )}
-
-          {/* ================= NEW CONVERSATION VIEW ================= */}
-          {activeView === "new-chat" && (
-            <div className="screen-content screen-elements">
-              {/* Header row */}
-              <div className="header-row">
-                <button className="header-btn" onClick={() => setActiveView("home")}>
-                  <ChevronLeft size={20} />
-                </button>
-                <h3 className="header-title">New Conversation</h3>
-                <button className="header-btn">
-                  <Settings size={18} />
-                </button>
-              </div>
-
-              {/* Central banner emblem */}
-              <div style={{ textAlign: 'center', marginTop: 12, marginBottom: 28 }}>
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2V22" stroke="#B79A73" strokeWidth="2.5" strokeLinecap="round"/>
-                    <path d="M5 9H19" stroke="#B79A73" strokeWidth="2.5" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <h2 className="serif-display" style={{ fontSize: 28, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: 8 }}>
-                  How can we pray for you today?
-                </h2>
-                <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', maxWidth: '300px', margin: '0 auto', lineHeight: 1.4 }}>
-                  Ask anything about faith, life, scripture, or something on your heart.
-                </p>
-              </div>
-
-              {/* Choose Pastor section */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>Select Teacher</span>
-                <span style={{ fontSize: 13, color: 'var(--color-accent-taupe-dark)', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 2 }}>
-                  Compare teachers &gt;
-                </span>
-              </div>
-
-              <div className="pastor-cards-container">
-                {pastors.map(pastor => (
-                  <div 
-                    key={pastor.id} 
-                    className={`pastor-card ${selectedPastor?.id === pastor.id ? 'pastor-card-selected' : ''}`}
-                    onClick={() => setSelectedPastor(selectedPastor?.id === pastor.id ? null : pastor)}
-                    style={{ paddingBottom: 16 }}
-                  >
-                    <div className="pastor-avatar-wrapper">
-                      <img src={pastor.image} alt={pastor.name} className="pastor-avatar" />
-                      {selectedPastor?.id === pastor.id && (
-                        <div className="pastor-badge">
-                          <Check size={10} strokeWidth={3} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="pastor-name">{pastor.name}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* TextInput / Suggestion box */}
-              <div 
-                className="composer-input-wrapper" 
-                style={{ 
-                  height: 64, 
-                  marginBottom: 16, 
-                  marginTop: 12,
-                  boxShadow: '0 4px 16px var(--color-shadow-warm)'
-                }}
-              >
-                <input 
-                  type="text" 
-                  className="composer-input"
-                  placeholder="Ask your question..."
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSendPrompt(); }}
-                />
-                <button className={`composer-mic-btn ${isRecording ? 'recording-pulse' : ''}`} onClick={handleToggleVoice}>
-                  <Mic size={20} />
-                </button>
-              </div>
-
-              {/* Suggestion tags */}
-              <div className="chips-container">
-                {suggestions.map((sug, idx) => (
-                  <div key={idx} className="chip" onClick={() => setPromptText(sug)}>
-                    {sug}
-                  </div>
-                ))}
-                <button className="chip-refresh-btn" onClick={handleShuffleSuggestions}>
-                  <RefreshCw size={15} style={{ color: 'var(--color-text-secondary)' }} />
-                </button>
-              </div>
-
-              {/* CTA Action Bar */}
-              {selectedPastor && (
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12 }}>
-                  <button className="composer-btn" style={{ width: 50, height: 50, flexShrink: 0 }}>
-                    <ImageIcon size={18} />
-                  </button>
-                  <button 
-                    className="composer-input-wrapper" 
-                    style={{ 
-                      height: 50, 
-                      backgroundColor: 'var(--color-bg-warm)', 
-                      justifyContent: 'center', 
-                      cursor: 'pointer',
-                      border: 'none',
-                      fontWeight: 600,
-                      color: 'var(--color-accent-taupe-dark)'
-                    }}
-                    onClick={() => handleSendPrompt()}
-                  >
-                    Ask Teacher {selectedPastor.name.replace("Pastor ", "")}
-                    <div className="composer-send-btn" style={{ width: 34, height: 34, marginLeft: 16 }}>
-                      <Send size={13} />
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ================= AI CONVERSATION VIEW ================= */}
-          {activeView === "chat" && (
-            <div className="screen-content screen-elements" style={{ paddingBottom: 160 }}>
-              {/* Header row */}
-              <div className="header-row">
-                <button className="header-btn" onClick={() => setActiveView("chats-list")}>
-                  <ChevronLeft size={20} />
-                </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  {activePastor ? (
-                    <>
-                      <img src={activePastor.image} alt={activePastor.name} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
-                      <span className="serif-display" style={{ fontSize: 16, fontWeight: 600 }}>{activePastor.name}</span>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ 
-                        width: 30, 
-                        height: 30, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'var(--color-accent-taupe)', 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        alignItems: 'center',
-                        color: 'white',
-                        flexShrink: 0
-                      }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 2V22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                          <path d="M5 9H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                        </svg>
-                      </div>
-                      <span className="serif-display" style={{ fontSize: 16, fontWeight: 600 }}>General Guidance</span>
-                    </>
-                  )}
-                  <ChevronDown size={14} style={{ color: 'var(--color-text-secondary)' }} />
-                </div>
-                <button className="header-btn">
-                  <MoreHorizontal size={18} />
-                </button>
-              </div>
-
-              {/* Chat Thread */}
-              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginTop: 12 }}>
-                
-                {/* Assistant intro header */}
-                <div style={{ textAlign: 'center', margin: '16px 0 28px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-                    {activePastor ? (
-                      <img src={activePastor.image} alt={activePastor.name} style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--color-border-soft)', boxShadow: '0 4px 12px var(--color-shadow-warm)' }} />
-                    ) : (
-                      <div style={{ 
-                        width: 80, 
-                        height: 80, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'var(--color-accent-taupe)', 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        alignItems: 'center',
-                        color: 'white',
-                        boxShadow: '0 4px 12px var(--color-shadow-warm)'
-                      }}>
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 2V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                          <path d="M5 9H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="serif-display" style={{ fontSize: 24, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-                    {activePastor ? activePastor.name : "General Guidance"}
-                  </h3>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-accent-taupe-dark)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    {activePastor ? activePastor.ministry : "Sayved Spiritual Engine"}
-                  </p>
-                </div>
-
-                {/* Log messages */}
-                {chatMessages.map((msg, index) => {
-                  if (msg.sender === "user") {
-                    return (
-                      <div key={msg.id} className="chat-bubble-user">
-                        <div className="chat-bubble-user-text">{msg.text}</div>
-                        <div className="chat-bubble-time" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
-                          {msg.time} <Check size={12} style={{ color: 'var(--color-accent-taupe)' }} />
-                        </div>
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <div key={msg.id} className="chat-bubble-assistant-row">
-                        {activePastor ? (
-                          <img src={activePastor.image} alt={activePastor.name} className="chat-bubble-assistant-avatar" />
-                        ) : (
-                          <div style={{ 
-                            width: 32, 
-                            height: 32, 
-                            borderRadius: '50%', 
-                            backgroundColor: 'var(--color-accent-taupe)', 
-                            display: 'flex', 
-                            justifyContent: 'center', 
-                            alignItems: 'center',
-                            color: 'white',
-                            marginRight: 8,
-                            flexShrink: 0
-                          }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M12 2V22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                              <path d="M5 9H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                            </svg>
-                          </div>
-                        )}
-                        <div className="chat-bubble-assistant-card">
-                          <div className="chat-bubble-assistant-text">{msg.text}</div>
-                                                {msg.scriptures && msg.scriptures.length > 0 && (
-                            <>
-                              <div className="chat-references-divider" />
-                              <div className="chat-references-header" style={{ marginBottom: 4 }}>
-                                Scripture References:
-                              </div>
-                              <div className="chat-references-list" style={{ gap: '4px 12px', marginBottom: 12 }}>
-                                {msg.scriptures.map(scriptureKey => (
-                                  <span 
-                                    key={scriptureKey} 
-                                    className="scripture-text-link"
-                                    onClick={() => handleOpenScripture(scriptureKey)}
-                                  >
-                                    {SCRIPTURES[scriptureKey]?.reference || scriptureKey}
-                                  </span>
-                                ))}
-                              </div>
-                            </>
-                          )}
-
-                          {msg.sermonUrl && (
-                            <div style={{ marginTop: 8, marginBottom: 12 }}>
-                              <a 
-                                href={msg.sermonUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                style={{
-                                  fontSize: 12,
-                                  color: 'var(--color-accent-taupe-dark)',
-                                  textDecoration: 'none',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 4,
-                                  fontWeight: 600,
-                                  borderBottom: '1px solid var(--color-accent-taupe-dark)',
-                                  paddingBottom: 2
-                                }}
-                              >
-                                <ExternalLink size={12} />
-                                Watch full teaching by {activePastor ? activePastor.name : "Teacher"} ↗
-                              </a>
-                            </div>
-                          )}
-
-                          {msg.video && (
-                            <div style={{
-                              backgroundColor: 'var(--color-surface-cream)',
-                              border: '1px solid var(--color-border-soft)',
-                              borderRadius: 16,
-                              padding: 12,
-                              marginTop: 14,
-                              marginBottom: 14,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 12,
-                              cursor: 'pointer',
-                              boxShadow: '0 2px 6px var(--color-shadow-warm)'
-                            }}
-                            onClick={() => window.open(msg.video.url, '_blank')}
-                            >
-                              <div style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: '50%',
-                                backgroundColor: 'var(--color-accent-taupe)',
-                                color: 'white',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                flexShrink: 0
-                              }}>
-                                <Play size={15} fill="currentColor" style={{ marginLeft: 2 }} />
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-accent-taupe-dark)', marginBottom: 2 }}>
-                                  Recommended Teaching
-                                </div>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {msg.video.title}
-                                </div>
-                                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginTop: 2 }}>
-                                  Video teaching • {msg.video.duration}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Action panel */}
-                          <div className="chat-actions-row">
-                            <div className="chat-actions">
-                              <button className="chat-action-btn" onClick={() => handleCopyMessage(msg.text)}>
-                                <Copy size={15} />
-                              </button>
-                              <button className="chat-action-btn" onClick={() => handleSaveMessage(msg.id)}>
-                                <Bookmark size={15} style={{ fill: savedMsgIds.has(msg.id) ? "var(--color-accent-taupe)" : "none", color: savedMsgIds.has(msg.id) ? "var(--color-accent-taupe)" : "currentColor" }} />
-                              </button>
-                              <button className="chat-action-btn">
-                                <Share2 size={15} />
-                              </button>
-                            </div>
-                            <span style={{ fontSize: 11, color: 'var(--color-text-secondary)', fontWeight: 500 }}>
-                              {msg.time}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-                })}
-
-                {/* Typing / Loading simulation */}
-                {isTyping && (
-                  <div className="chat-bubble-assistant-row">
-                    {activePastor ? (
-                      <img src={activePastor.image} alt={activePastor.name} className="chat-bubble-assistant-avatar" />
-                    ) : (
-                      <div style={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'var(--color-accent-taupe)', 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        alignItems: 'center',
-                        color: 'white',
-                        marginRight: 8,
-                        flexShrink: 0
-                      }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 2V22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                          <path d="M5 9H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                        </svg>
-                      </div>
-                    )}
-                    <div className="chat-bubble-assistant-card" style={{ padding: '16px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div className="loader-dots">
-                          <span className="dot"></span>
-                          <span className="dot"></span>
-                          <span className="dot"></span>
-                        </div>
-                        <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-                          {activePastor ? (
-                            <>
-                              {typingStateIndex === 0 && `Searching ${activePastor.name}'s teachings...`}
-                              {typingStateIndex === 1 && "Grounding answer in Scripture..."}
-                              {typingStateIndex === 2 && "Preparing response..."}
-                            </>
-                          ) : (
-                            <>
-                              {typingStateIndex === 0 && "Searching general faith teachings..."}
-                              {typingStateIndex === 1 && "Grounding in Scriptures..."}
-                              {typingStateIndex === 2 && "Preparing general guidance..."}
-                            </>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* TTS Playback card for the latest message */}
-                {chatMessages.length > 1 && !isTyping && (
-                  <div className="tts-player-card" onClick={() => setTtsPlaying(!ttsPlaying)}>
-                    <div className="tts-left">
-                      <div className="tts-icon-wrapper">
-                        {ttsPlaying ? <Pause size={18} /> : <Play size={18} />}
-                      </div>
-                      <div className="tts-text">
-                        {ttsPlaying ? "Playing answer audio..." : "Listen to this answer"}
-                      </div>
-                    </div>
-                    <div className="tts-right">
-                      {ttsPlaying && (
-                        <div className="tts-playing-animation">
-                          <div className="tts-bar tts-bar-1"></div>
-                          <div className="tts-bar tts-bar-2"></div>
-                          <div className="tts-bar tts-bar-3"></div>
-                        </div>
-                      )}
-                      <span>01:32</span>
-                    </div>
-                  </div>
-                )}
-
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Composer Input fixed in bottom layout */}
-              <div className="chat-composer-container">
-                <div className="chat-composer-row">
-                  <button className="composer-btn">
-                    <Plus size={18} />
-                  </button>
-                  <div className="composer-input-wrapper">
-                    <input 
-                      type="text" 
-                      className="composer-input"
-                      placeholder="Ask anything..."
-                      value={promptText}
-                      onChange={(e) => setPromptText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleSendPrompt(); }}
-                    />
-                    <button className="composer-mic-btn" onClick={handleToggleVoice}>
-                      <Mic size={18} />
-                    </button>
-                  </div>
-                  <button className="composer-send-btn" onClick={() => handleSendPrompt()}>
-                    <Send size={18} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= CHATS LIST VIEW ================= */}
-          {activeView === "chats-list" && (
-            <div className="screen-content screen-elements" style={{ paddingBottom: 100 }}>
-              {/* Header row */}
-              <div className="header-row">
-                <button className="header-btn" onClick={() => setActiveView("home")}>
-                  <ChevronLeft size={20} />
-                </button>
-                <h3 className="header-title">Conversations</h3>
-                <button 
-                  className="header-btn" 
-                  onClick={() => {
-                    setSelectedPastor(null);
-                    setActiveView("new-chat");
-                  }}
-                  style={{ backgroundColor: 'var(--color-accent-taupe)', color: 'white', borderColor: 'var(--color-accent-taupe)' }}
-                >
-                  <Plus size={20} />
-                </button>
-              </div>
-
-              {/* Chat threads list */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
-                {threads.map(thread => {
-                  const pastor = pastors.find(p => p.id === thread.pastorId);
-                  const lastMessage = thread.messages[thread.messages.length - 1];
-
-                  return (
-                    <div 
-                      key={thread.id}
-                      className="thread-list-card"
-                      onClick={() => {
-                        setActiveThreadId(thread.id);
-                        setActiveView("chat");
-                      }}
-                      style={{
-                        backgroundColor: 'var(--color-surface-white)',
-                        borderRadius: 20,
-                        border: '1px solid var(--color-border-soft)',
-                        padding: 16,
-                        display: 'flex',
-                        gap: 12,
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 12px var(--color-shadow-warm)',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      {/* Avatar or General logo */}
-                      <div style={{ flexShrink: 0 }}>
-                        {pastor ? (
-                          <img src={pastor.image} alt={pastor.name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--color-border-soft)' }} />
-                        ) : (
-                          <div style={{ 
-                            width: 48, 
-                            height: 48, 
-                            borderRadius: '50%', 
-                            backgroundColor: 'var(--color-accent-taupe)', 
-                            display: 'flex', 
-                            justifyContent: 'center', 
-                            alignItems: 'center',
-                            color: 'white'
-                          }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M12 2V22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                              <path d="M5 9H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Thread details */}
-                      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-accent-taupe-dark)' }}>
-                            {pastor ? pastor.name : "General Guidance"}
-                          </span>
-                          <span style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{thread.date}</span>
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {thread.title}
-                        </div>
-                        <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {lastMessage ? lastMessage.text : "No messages yet"}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Start new conversation button at bottom */}
-              <button 
-                className="auth-btn auth-btn-phone" 
-                onClick={() => {
-                  setSelectedPastor(null);
-                  setActiveView("new-chat");
-                }}
-                style={{ marginTop: 24, justifyContent: 'center', margin: '24px 0 0' }}
-              >
-                <Plus size={16} style={{ marginRight: 8 }} />
-                New Conversation
-              </button>
-            </div>
-          )}
-
-          {/* ================= SCRIPTURE DETAILS VIEW ================= */}
-          {activeView === "scripture" && (
-            <div className="screen-content screen-elements">
-              {/* Header row */}
-              <div className="header-row">
-                <button className="header-btn" onClick={() => setActiveView("chat")}>
-                  <ChevronLeft size={20} />
-                </button>
-                <h3 className="header-title">Scripture & Grounding</h3>
-                <div style={{ width: 44 }} />
-              </div>
-
-              {/* Content body */}
-              <div style={{ marginTop: 12 }}>
-                <div className="reference-card">
-                  <h4 className="serif-display" style={{ fontSize: 24, color: 'var(--color-accent-taupe-dark)', marginBottom: 14 }}>
-                    {selectedScripture.reference}
-                  </h4>
-                  <p className="reference-text">
-                    "{selectedScripture.text}"
-                  </p>
-                </div>
-
-                <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Why this verse?</h3>
-                <div style={{ 
-                  backgroundColor: 'var(--color-surface-white)', 
-                  border: '1px solid var(--color-border-soft)',
-                  borderRadius: 20, 
-                  padding: 20,
-                  boxShadow: '0 4px 12px var(--color-shadow-warm)',
-                  lineHeight: 1.6,
-                  fontSize: 14.5,
-                  color: 'var(--color-text-primary)',
-                  marginBottom: 24
-                }}>
-                  {selectedScripture.explanation}
-                </div>
-
-                <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Related teachings</h3>
-                <div style={{ 
-                  backgroundColor: 'var(--color-surface-cream)', 
-                  border: '1px solid var(--color-accent-taupe)',
-                  borderRadius: 20, 
-                  padding: 16,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-accent-taupe-dark)', marginBottom: 2 }}>
-                      Grounded Sermon
-                    </div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                      "{selectedScripture.sermon}"
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>
-                      Timestamp: {selectedScripture.timestamp} • {selectedPastor ? selectedPastor.name : "General Guidance"}
-                    </div>
-                  </div>
-                  <button 
-                    className="header-btn" 
-                    style={{ 
-                      flexShrink: 0, 
-                      backgroundColor: 'var(--color-accent-taupe)', 
-                      borderColor: 'var(--color-accent-taupe)',
-                      color: 'white' 
-                    }}
-                    onClick={() => alert("Simulating launching sermon video playback...")}
-                  >
-                    <Play size={15} style={{ fill: 'currentColor', marginLeft: 2 }} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= TODAY'S DEVOTION VIEW ================= */}
-          {activeView === "devotion" && (
-            <div className="screen-content screen-elements">
-              {/* Header row */}
-              <div className="header-row">
-                <button className="header-btn" onClick={() => setActiveView("home")}>
-                  <ChevronLeft size={20} />
-                </button>
-                <h3 className="header-title">Today's Devotion</h3>
-                <button className="header-btn" style={{ color: 'var(--color-accent-taupe)' }}>
-                  <Heart size={18} style={{ fill: 'currentColor' }} />
-                </button>
-              </div>
-
-              {/* Devotional Content */}
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-accent-taupe-dark)', marginBottom: 4 }}>
-                  Good Morning
-                </div>
-                <h2 className="serif-display" style={{ fontSize: 32, fontWeight: 500, lineHeight: 1.15, marginBottom: 12 }}>
-                  {DEVOTION.title}
-                </h2>
-                <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginBottom: 20 }}>
-                  {DEVOTION.readingTime} read • Scripture Reference: <span onClick={() => handleOpenScripture("mark_4_39")} style={{ color: 'var(--color-accent-taupe-dark)', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>{DEVOTION.scriptureRef}</span>
-                </div>
-
-                <div 
-                  style={{ 
-                    height: 180, 
-                    borderRadius: 24, 
-                    backgroundImage: "url('/assets/devotion_preview.jpg')", 
-                    backgroundSize: 'cover', 
-                    backgroundPosition: 'center',
-                    marginBottom: 24,
-                    boxShadow: '0 4px 16px var(--color-shadow-warm)'
-                  }} 
-                />
-
-                <div className="devotion-verse-card">
-                  <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontStyle: 'italic', lineHeight: 1.5, color: 'var(--color-text-primary)' }}>
-                    "{DEVOTION.scriptureText}"
-                  </p>
-                </div>
-
-                <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>Reflection</h3>
-                <p className="devotion-text-block">{DEVOTION.reflection}</p>
-
-                <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600, marginTop: 24, marginBottom: 10 }}>Prayer</h3>
-                <p className="devotion-text-block" style={{ fontStyle: 'italic', backgroundColor: 'var(--color-surface-cream)', padding: 18, borderRadius: 20, border: '1px solid var(--color-border-soft)' }}>
-                  {DEVOTION.prayer}
-                </p>
-
-                <div style={{ display: 'flex', gap: 12, marginTop: 28, marginBottom: 20 }}>
-                  <button className="auth-btn" style={{ flex: 1, justifyContent: 'center', margin: 0 }}>
-                    <Share2 size={16} style={{ marginRight: 8 }} />
-                    Share Devotion
-                  </button>
-                  <button className="auth-btn auth-btn-phone" style={{ flex: 1, justifyContent: 'center', margin: 0 }}>
-                    <Bookmark size={16} style={{ marginRight: 8 }} />
-                    Save to Journal
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= PROFILE VIEW ================= */}
-          {activeView === "profile" && (
-            <div className="screen-content screen-elements">
-              {/* Header row */}
-              <div className="header-row">
-                <button className="header-btn" onClick={() => setActiveView("home")}>
-                  <ChevronLeft size={20} />
-                </button>
-                <h3 className="header-title">Profile & Journal</h3>
-                <div style={{ width: 44 }} />
-              </div>
-
-              {/* User overview */}
-              <div style={{ textAlign: 'center', margin: '16px 0 28px' }}>
-                <div style={{ 
-                  width: 80, 
-                  height: 80, 
-                  borderRadius: '50%', 
-                  backgroundColor: 'var(--color-chip-beige)', 
-                  margin: '0 auto 12px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  color: 'var(--color-accent-taupe-dark)'
-                }}>
-                  <User size={36} />
-                </div>
-                <h3 className="serif-display" style={{ fontSize: 22, fontWeight: 600 }}>Faith Seeker</h3>
-                <p style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Member since July 2026</p>
-              </div>
-
-              {/* Preferred Pastor */}
-              <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Preferred Pastor</h3>
-              <div style={{ 
-                backgroundColor: 'var(--color-surface-white)', 
-                borderRadius: 20, 
-                border: '1px solid var(--color-border-soft)',
-                padding: 16,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: '0 4px 12px var(--color-shadow-warm)',
-                marginBottom: 24
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  {selectedPastor ? (
-                    <>
-                      <img src={selectedPastor.image} alt={selectedPastor.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedPastor.name}</div>
-                        <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{selectedPastor.specialty}</div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ 
-                        width: 36, 
-                        height: 36, 
-                        borderRadius: '50%', 
-                        backgroundColor: 'var(--color-accent-taupe)', 
-                        display: 'flex', 
-                        justifyContent: 'center', 
-                        alignItems: 'center',
-                        color: 'white',
-                        flexShrink: 0
-                      }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 2V22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                          <path d="M5 9H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600 }}>General Guidance</div>
-                        <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>Grounded in Multi-Teacher teachings</div>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <ChevronDown size={18} style={{ color: 'var(--color-text-secondary)', cursor: 'pointer' }} />
-              </div>
-
-              {/* Saved items list */}
-              <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>Saved Conversations</h3>
-              <div style={{ marginBottom: 24 }}>
-                {savedConversations.map(conv => (
-                  <div 
-                    key={conv.id}
-                    style={{ 
-                      backgroundColor: 'var(--color-surface-white)', 
-                      borderRadius: 16, 
-                      padding: 16,
-                      border: '1px solid var(--color-border-soft)',
-                      marginBottom: 10,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => {
-                      const selected = pastors.find(p => p.name === conv.pastorName) || selectedPastor;
-                      setSelectedPastor(selected);
-                      setActiveView("chat");
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-primary)' }}>{conv.title}</div>
-                      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{conv.pastorName} • {conv.date}</div>
-                    </div>
-                    <ChevronLeft size={16} style={{ color: 'var(--color-text-muted)', transform: 'rotate(180deg)' }} />
-                  </div>
-                ))}
-              </div>
-
-              {/* Settings list */}
-              <h3 className="serif-display" style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>App Settings</h3>
-              <div style={{ 
-                backgroundColor: 'var(--color-surface-white)', 
-                borderRadius: 20, 
-                border: '1px solid var(--color-border-soft)', 
-                padding: '8px 16px',
-                marginBottom: 24
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--color-border-soft)' }}>
-                  <span style={{ fontSize: 14, fontWeight: 500 }}>Daily Devotional Reminders</span>
-                  <div style={{ width: 44, height: 24, backgroundColor: 'var(--color-accent-taupe)', borderRadius: 12, display: 'flex', alignItems: 'center', padding: 2, cursor: 'pointer', justifyContent: 'flex-end' }}>
-                    <div style={{ width: 20, height: 20, backgroundColor: 'white', borderRadius: '50%' }} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
-                  <span style={{ fontSize: 14, fontWeight: 500 }}>Autoplay Scripture Audio</span>
-                  <div style={{ width: 44, height: 24, backgroundColor: 'var(--color-border-soft)', borderRadius: 12, display: 'flex', alignItems: 'center', padding: 2, cursor: 'pointer', justifyContent: 'flex-start' }}>
-                    <div style={{ width: 20, height: 20, backgroundColor: 'white', borderRadius: '50%', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Version */}
-              <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 20 }}>
-                Sayved Sharp MVP v1.0.0<br />
-                Grounded in Wisdom and Truth.
-              </div>
-            </div>
-          )}
-
-          {/* ================= BOTTOM TAB BAR ================= */}
-          {activeView !== "auth" && activeView !== "scripture" && (
-            <div className="tab-bar">
-              <button 
-                className={`tab-item ${activeView === "home" ? 'tab-item-active' : ''}`}
-                onClick={() => setActiveView("home")}
-              >
-                <Home size={20} />
-                <span className="tab-label">Home</span>
-              </button>
-              <button 
-                className={`tab-item ${activeView === "new-chat" || activeView === "chat" || activeView === "chats-list" ? 'tab-item-active' : ''}`}
-                onClick={() => setActiveView("chats-list")}
-              >
-                <MessageSquare size={20} />
-                <span className="tab-label">Chats</span>
-              </button>
-              <button 
-                className={`tab-item ${activeView === "devotion" ? 'tab-item-active' : ''}`}
-                onClick={() => setActiveView("devotion")}
-              >
-                <BookOpen size={20} />
-                <span className="tab-label">Devotions</span>
-              </button>
-              <button 
-                className={`tab-item ${activeView === "profile" ? 'tab-item-active' : ''}`}
-                onClick={() => setActiveView("profile")}
-              >
-                <User size={20} />
-                <span className="tab-label">Profile</span>
-              </button>
-            </div>
-          )}
+function TeacherCard({ teacher, onOpen, onSeat }) {
+  return (
+    <article className="teacher-card">
+      <img src={teacher.image} alt="" />
+      <div className="teacher-main">
+        <div className="teacher-name-line">
+          <h3>{teacher.name}</h3>
+          <TeacherBadge teacher={teacher} />
+        </div>
+        <p>{teacher.ministry}</p>
+        <span>{teacher.relationship}</span>
+        <div className="topic-row">
+          {teacher.topics.slice(0, 3).map((topic) => (
+            <Pill key={topic}>{topic}</Pill>
+          ))}
         </div>
       </div>
+      <div className="card-actions">
+        <button className="quiet-button" onClick={onOpen}>
+          <ExternalLink size={15} /> Profile
+        </button>
+        <button className="quiet-button" onClick={onSeat}>
+          <Plus size={15} /> Seat
+        </button>
+      </div>
+    </article>
+  );
+}
 
-      {/* Loader CSS style block */}
-      <style>{`
-        .loader-dots {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .loader-dots .dot {
-          width: 6px;
-          height: 6px;
-          background-color: var(--color-accent-taupe);
-          border-radius: 50%;
-          display: inline-block;
-          animation: dotElastic 1.4s infinite ease-in-out both;
-        }
-        .loader-dots .dot:nth-child(1) {
-          animation-delay: -0.32s;
-        }
-        .loader-dots .dot:nth-child(2) {
-          animation-delay: -0.16s;
-        }
-        @keyframes dotElastic {
-          0%, 80%, 100% { 
-            transform: scale(0);
-          } 40% { 
-            transform: scale(1.0);
-          }
-        }
-        
-        .recording-pulse {
-          animation: recordPulse 1.2s infinite ease-in-out alternate;
-          background-color: rgba(234, 67, 53, 0.15) !important;
-          color: #EA4335 !important;
-          border-color: #EA4335 !important;
-        }
-        @keyframes recordPulse {
-          0% { transform: scale(1); }
-          100% { transform: scale(1.08); }
-        }
-      `}</style>
+function App() {
+  const [onboarded, setOnboarded] = useState(false);
+  const [tab, setTab] = useState("talk");
+  const [screen, setScreen] = useState("talk");
+  const [scope, setScope] = useState("Sayved");
+  const [selectedTeacher, setSelectedTeacher] = useState(teachers[0]);
+  const [selectedMemory, setSelectedMemory] = useState(memoryItems[0]);
+  const [composer, setComposer] = useState("");
+  const [messages, setMessages] = useState([
+    {
+      id: "director-1",
+      role: "director",
+      text: "I am here with you. We can go slowly. Tell me what is actually on your heart, and I will answer as Sayved, grounded in Scripture and careful with anything I cite.",
+    },
+    {
+      id: "user-1",
+      role: "user",
+      text: "I feel like I am falling behind.",
+    },
+    {
+      id: "director-2",
+      role: "director",
+      text: "Can I name something gently? This sounds like the old fear of being behind wearing new clothes. We do not have to solve your whole life tonight. The next faithful step may be smaller than the pressure is telling you.",
+      scripture: true,
+      memory: true,
+      source: true,
+    },
+  ]);
+
+  const activeTab = useMemo(() => {
+    if (["follow", "teacher", "council", "source", "request"].includes(screen)) return "follow";
+    if (["walk", "well", "devotion", "memory", "autobiography", "echo", "rhythm", "settings", "bible", "recovery", "dashboard"].includes(screen)) return "walk";
+    return tab;
+  }, [screen, tab]);
+
+  useEffect(() => {
+    document.querySelector(".screen-content")?.scrollTo({ top: 0, behavior: "instant" });
+  }, [screen]);
+
+  function go(nextScreen, nextTab = tab) {
+    setTab(nextTab);
+    setScreen(nextScreen);
+  }
+
+  function handleSend() {
+    if (!composer.trim()) return;
+    const prompt = composer.trim();
+    setComposer("");
+    if (/suicide|kill myself|end it/i.test(prompt)) {
+      go("crisis", "talk");
+      return;
+    }
+    setMessages((items) => [
+      ...items,
+      { id: `user-${Date.now()}`, role: "user", text: prompt },
+      {
+        id: `director-${Date.now()}`,
+        role: "director",
+        text:
+          scope === "My Teachers"
+            ? `${selectedTeacher.name} is ${selectedTeacher.relationship.toLowerCase()}, so I will not guess at that catalog. I can stay with you as Sayved and open official source routes that relate to this question.`
+            : "I hear the weight in that. Let us take it one clear step at a time: name what is true, receive what Scripture can steady, and choose one obedient action you can actually carry today.",
+        scripture: true,
+        memory: scope !== "My Teachers",
+        source: scope === "My Teachers",
+      },
+    ]);
+  }
+
+  if (!onboarded) {
+    return (
+      <Shell hideNav>
+        <section className="screen-content onboarding">
+          <div className="onboarding-mark">
+            <Mark />
+            <h1>Sayved</h1>
+            <p>Walked with.</p>
+          </div>
+          <div className="question-block">
+            <h2>What brings you here today?</h2>
+            {["I'm going through something", "I want to grow", "I'm curious", "I honestly don't know"].map((answer) => (
+              <button key={answer} className="answer-row" onClick={() => setOnboarded(true)}>
+                <span>{answer}</span>
+                <ChevronLeft size={17} />
+              </button>
+            ))}
+          </div>
+          <div className="promise-panel">
+            <LockKeyhole size={19} />
+            <div>
+              <strong>Privacy promise</strong>
+              <p>Sayved cannot read your prayers. Even we do not have the keys when private Memory is stored locally or end-to-end encrypted.</p>
+            </div>
+          </div>
+          <div className="consent-list">
+            {["Privacy Policy", "Terms", "AI disclosure", "Memory controls", "Notification rhythm"].map((item) => (
+              <label key={item}>
+                <input type="checkbox" defaultChecked />
+                <span>{item}</span>
+              </label>
+            ))}
+          </div>
+          <button className="primary-button" onClick={() => setOnboarded(true)}>
+            Continue to Talk
+          </button>
+        </section>
+      </Shell>
+    );
+  }
+
+  return (
+    <Shell activeTab={activeTab} onTab={(next) => go(next, next)}>
+      {screen === "talk" && (
+        <section className="screen-content talk-screen has-composer">
+          <TopBar
+            title="Talk"
+            eyebrow="One continuous Director conversation"
+            action={
+              <IconButton label="Crisis help" onClick={() => go("crisis", "talk")} tone="warning">
+                <AlertTriangle size={18} />
+              </IconButton>
+            }
+          />
+          <div className="source-switcher" role="tablist" aria-label="Source scope">
+            {["Sayved", "My Council", "My Teachers"].map((item) => (
+              <button key={item} className={scope === item ? "active" : ""} onClick={() => setScope(item)}>
+                {item}
+              </button>
+            ))}
+          </div>
+          <div className="quick-teachers">
+            {teachers.map((teacher) => (
+              <button
+                key={teacher.id}
+                className={selectedTeacher.id === teacher.id ? "selected" : ""}
+                onClick={() => {
+                  setSelectedTeacher(teacher);
+                  setScope("My Teachers");
+                }}
+                title={teacher.name}
+              >
+                <img src={teacher.image} alt="" />
+              </button>
+            ))}
+          </div>
+          <div className="message-stack">
+            {messages.map((message) => (
+              <article key={message.id} className={message.role === "user" ? "user-message" : "director-card"}>
+                {message.role === "director" && (
+                  <div className="director-head">
+                    <Mark small />
+                    <div>
+                      <strong>Sayved</strong>
+                      <span>Director voice</span>
+                    </div>
+                  </div>
+                )}
+                <p>{message.text}</p>
+                {message.scripture && (
+                  <button className="scripture-chip" onClick={() => go("scripture", "talk")}>
+                    <BookOpen size={14} /> {scripture.reference}
+                  </button>
+                )}
+                {message.source && (
+                  <SourceCard
+                    compact
+                    teacher={selectedTeacher}
+                    onOpen={() => go("source", "follow")}
+                    onRequest={() => go("request", "follow")}
+                  />
+                )}
+                {message.memory && (
+                  <button className="memory-thread" onClick={() => go("memory", "walk")}>
+                    <Archive size={14} /> This may connect to your fear of falling behind.
+                  </button>
+                )}
+                {message.role === "director" && (
+                  <div className="listen-row">
+                    <Volume2 size={15} />
+                    <span>Director audio</span>
+                    <div />
+                    <button><Play size={14} /></button>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+          <Composer value={composer} onChange={setComposer} onSend={handleSend} />
+        </section>
+      )}
+
+      {screen === "scripture" && (
+        <Detail title="Scripture" eyebrow="Reference" onBack={() => go("talk", "talk")}>
+          <article className="quiet-panel scripture-page">
+            <Pill>Referenced in Talk</Pill>
+            <h2>{scripture.reference}</h2>
+            <p className="scripture-text">{scripture.text}</p>
+          </article>
+          <InfoBlock icon={<BookOpen size={17} />} title="Why this verse?" text={scripture.why} />
+          <div className="action-grid">
+            <button><BookOpen size={16} /> Open Bible</button>
+            <button><Archive size={16} /> Save</button>
+            <button><FileText size={16} /> Copy</button>
+          </div>
+        </Detail>
+      )}
+
+      {screen === "crisis" && (
+        <section className="screen-content crisis-screen">
+          <div className="crisis-card">
+            <AlertTriangle size={28} />
+            <h1>You should not be alone with this.</h1>
+            <p>If you may hurt yourself or someone else, call emergency services now. Sayved will step back and help you reach a human.</p>
+            <button className="primary-button">Call 911</button>
+            <button className="secondary-button">Call or text 988</button>
+            <button className="secondary-button">Contact Recovery Person</button>
+            <span>No pastor cards, no debate, no Memory save.</span>
+          </div>
+        </section>
+      )}
+
+      {screen === "follow" && (
+        <section className="screen-content">
+          <TopBar title="Follow" eyebrow="Teachers, sources, Council" />
+          <div className="search-box">
+            <Search size={17} />
+            <span>Search teachers, sources, topics</span>
+          </div>
+          <SectionTitle title="Prototype Teacher Slots" action="Four narrow MVP slots" />
+          <div className="teacher-list">
+            {teachers.map((teacher) => (
+              <TeacherCard
+                key={teacher.id}
+                teacher={teacher}
+                onOpen={() => {
+                  setSelectedTeacher(teacher);
+                  go("teacher", "follow");
+                }}
+                onSeat={() => go("council", "follow")}
+              />
+            ))}
+          </div>
+          <SectionTitle title="Follow Flow" action="Source-safe" />
+          <div className="screen-map compact-map">
+            {["Follow", "Teacher profile", "Open official sources", "Request teacher", "Seat in Council"].map((item) => (
+              <button key={item} onClick={() => item === "Request teacher" && go("request", "follow")}>
+                <Circle size={9} /> {item}
+              </button>
+            ))}
+          </div>
+          <button className="primary-button" onClick={() => go("council", "follow")}>
+            Build Council
+          </button>
+        </section>
+      )}
+
+      {screen === "teacher" && (
+        <Detail title="Teacher Profile" eyebrow="Trust and source status" onBack={() => go("follow", "follow")}>
+          <article className="teacher-profile">
+            <img src={selectedTeacher.image} alt="" />
+            <div>
+              <TeacherBadge teacher={selectedTeacher} />
+              <h2>{selectedTeacher.name}</h2>
+              <p>{selectedTeacher.ministry}</p>
+              <strong>{selectedTeacher.relationship}</strong>
+            </div>
+          </article>
+          <InfoBlock icon={<ShieldCheck size={17} />} title="What Sayved can do" text="Route to official sources, show public facts, and use brief attributed material when safe." />
+          <InfoBlock icon={<X size={17} />} title="What Sayved will not do" text="No first-person teacher simulation, no deep transcript retrieval, no Disputation for unverified or estate teachers." />
+          <div className="topic-row">
+            {selectedTeacher.topics.map((topic) => <Pill key={topic}>{topic}</Pill>)}
+          </div>
+          <SourceCard teacher={selectedTeacher} onOpen={() => go("source", "follow")} onRequest={() => go("request", "follow")} />
+        </Detail>
+      )}
+
+      {screen === "source" && (
+        <Detail title="Source Player" eyebrow="Official public route" onBack={() => go("follow", "follow")}>
+          <article className="player-card">
+            <div className="player-art"><Headphones size={34} /></div>
+            <Pill tone="beige">{selectedTeacher.relationship}</Pill>
+            <h2>{selectedTeacher.name}</h2>
+            <p>Official source route selected for mobile playback. No catalog synthesis is implied.</p>
+            <div className="player-controls">
+              <button><ChevronLeft size={17} /></button>
+              <button className="play-large"><Play size={22} /></button>
+              <button><MoreHorizontal size={17} /></button>
+            </div>
+          </article>
+          <SectionTitle title="Official Routes" />
+          {selectedTeacher.officialSources.map((source) => (
+            <div className="list-row" key={source}>
+              <ExternalLink size={16} />
+              <span>{source}</span>
+            </div>
+          ))}
+        </Detail>
+      )}
+
+      {screen === "request" && (
+        <Detail title="Request Teacher" eyebrow="Licensing signal" onBack={() => go("teacher", "follow")}>
+          <InfoBlock icon={<Check size={18} />} title="Request logged" text={`${selectedTeacher.name} was added to licensing demand signals. Until approval exists, Sayved stays in official-source mode.`} />
+          <button className="primary-button" onClick={() => go("follow", "follow")}>Done</button>
+        </Detail>
+      )}
+
+      {screen === "council" && (
+        <Detail title="Council Builder" eyebrow="Seven seats" onBack={() => go("follow", "follow")}>
+          <div className="council-grid">
+            {Array.from({ length: 7 }).map((_, index) => {
+              const teacher = teachers[index % teachers.length];
+              return (
+                <button key={index} className="seat">
+                  {index < 4 ? <img src={teacher.image} alt="" /> : <Plus size={20} />}
+                  <span>{index < 4 ? teacher.name : "Open seat"}</span>
+                  {index < 4 && <small>{teacher.status === "estate" ? "Source mode" : "Unverified"}</small>}
+                </button>
+              );
+            })}
+          </div>
+          <InfoBlock icon={<UsersRound size={17} />} title="Council rule" text="Council voices can weigh in proactively, but the Director gathers them. No one speaks as themselves." />
+          <button className="primary-button" onClick={() => go("council-session", "talk")}>Preview Council Session</button>
+        </Detail>
+      )}
+
+      {screen === "council-session" && (
+        <Detail title="Council Session" eyebrow="Director-gathered" onBack={() => go("talk", "talk")}>
+          <article className="director-card">
+            <div className="director-head"><Mark small /><div><strong>Sayved</strong><span>Gathering the Council</span></div></div>
+            <p>I can bring the Council near, but I will keep the voice as Sayved. Each seat is checked before anything is used.</p>
+          </article>
+          {teachers.slice(0, 3).map((teacher) => (
+            <SourceCard key={teacher.id} teacher={teacher} compact onOpen={() => go("source", "follow")} onRequest={() => go("request", "follow")} />
+          ))}
+          <InfoBlock icon={<Sparkles size={17} />} title="Director close" text="What is one faithful step you can take before asking for a verdict?" />
+        </Detail>
+      )}
+
+      {screen === "compare" && (
+        <Detail title="Compare Teachings" eyebrow="Verification-aware" onBack={() => go("talk", "talk")}>
+          <div className="compare-grid">
+            {teachers.slice(0, 2).map((teacher) => (
+              <article key={teacher.id} className="compare-card">
+                <TeacherBadge teacher={teacher} />
+                <h3>{teacher.name}</h3>
+                <p>Brief public themes and official links only. Deep comparison is disabled until licensed or public-domain content exists.</p>
+              </article>
+            ))}
+          </div>
+          <InfoBlock icon={<ShieldCheck size={17} />} title="Honest depth" text="Any unverified or estate participant keeps the comparison in source-routing mode." />
+        </Detail>
+      )}
+
+      {screen === "disputation" && (
+        <Detail title="Disputation" eyebrow="Locked rules" onBack={() => go("talk", "talk")}>
+          <InfoBlock icon={<X size={17} />} title="Unavailable for this set" text="The current four MVP teachers are unverified or estate. Disputation requires verified or public-domain voices." />
+          <div className="rule-list">
+            {["No winner", "No first-person simulation", "No estate voices", "Core creedal truths are not staged"].map((rule) => <span key={rule}>{rule}</span>)}
+          </div>
+        </Detail>
+      )}
+
+      {screen === "walk" && (
+        <section className="screen-content">
+          <TopBar title="My Walk" eyebrow="Memory, Echo, Well, settings" />
+          <div className="walk-hero">
+            <Pill tone="olive">Your walk belongs to you</Pill>
+            <h2>Memory is not chat history.</h2>
+            <p>It is a structured, correctable understanding of your walk. You can edit, export, or forget it.</p>
+          </div>
+          <SectionTitle title="Today" />
+          <div className="tool-grid">
+            <ToolButton icon={<BookOpen />} title="The Well" text="A feed that ends" onClick={() => go("well", "walk")} />
+            <ToolButton icon={<FileText />} title="Devotion" text="Good Morning" onClick={() => go("devotion", "walk")} />
+            <ToolButton icon={<Archive />} title="Memory" text="Edit or forget" onClick={() => go("memory", "walk")} />
+            <ToolButton icon={<Radio />} title="Echo" text="Sunday to Saturday" onClick={() => go("echo", "walk")} />
+          </div>
+          <SectionTitle title="Complete Screen Map" action="All flows" />
+          <div className="screen-map">
+            {flowScreens.map((item) => (
+              <button key={item} onClick={() => routeFromMap(item, go)}>
+                <Circle size={9} /> {item}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {screen === "well" && (
+        <Detail title="The Well" eyebrow="Daily feed that ends" onBack={() => go("walk", "walk")}>
+          <WellItem icon={<BookOpen size={17} />} title="Today's Scripture" text="Psalm 119:105. A lamp, not a floodlight." />
+          <WellItem icon={<FileText size={17} />} title="Short Reflection" text="You only need enough light for the next faithful step." />
+          <WellItem icon={<Library size={17} />} title="Teacher Source" text={`${selectedTeacher.name}: official source route available.`} onClick={() => go("source", "follow")} />
+          <WellItem icon={<Archive size={17} />} title="Memory Thread" text="This connects gently to your morning rhythm commitment." onClick={() => go("memory", "walk")} />
+          <div className="end-state">The Well ends here today.</div>
+        </Detail>
+      )}
+
+      {screen === "devotion" && (
+        <Detail title="Today's Devotion" eyebrow="Minimal reflection" onBack={() => go("walk", "walk")}>
+          <article className="devotion-page">
+            <span>Good Morning.</span>
+            <h2>Tending the Soil of the Heart</h2>
+            <p>3 min read</p>
+            <button className="scripture-chip" onClick={() => go("scripture", "talk")}><BookOpen size={14} /> Luke 8:15</button>
+          </article>
+          <InfoBlock icon={<FileText size={17} />} title="Reflection" text="Growth is not performance. It is a protected place where the Word can remain long enough to bear fruit." />
+          <InfoBlock icon={<HeartHandshake size={17} />} title="Prayer" text="Lord, soften my heart today. Help me receive enough light for the step in front of me." />
+          <div className="action-grid">
+            <button><Archive size={16} /> Save</button>
+            <button><Volume2 size={16} /> Listen</button>
+            <button><ExternalLink size={16} /> Share</button>
+          </div>
+        </Detail>
+      )}
+
+      {screen === "memory" && (
+        <Detail title="Memory" eyebrow="Owned by you" onBack={() => go("walk", "walk")}>
+          <div className="memory-list">
+            {memoryItems.map((item) => (
+              <button
+                key={item.id}
+                className="memory-card"
+                onClick={() => {
+                  setSelectedMemory(item);
+                  go("memory-detail", "walk");
+                }}
+              >
+                <Pill>{item.type}</Pill>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </button>
+            ))}
+          </div>
+          <div className="action-grid">
+            <button onClick={() => go("autobiography", "walk")}><FileText size={16} /> Autobiography</button>
+            <button><Download size={16} /> Export</button>
+            <button onClick={() => go("recovery", "walk")}><LockKeyhole size={16} /> Recovery</button>
+          </div>
+        </Detail>
+      )}
+
+      {screen === "memory-detail" && (
+        <Detail title="Memory Detail" eyebrow={selectedMemory.type} onBack={() => go("memory", "walk")}>
+          <article className="quiet-panel">
+            <h2>{selectedMemory.title}</h2>
+            <p>{selectedMemory.body}</p>
+            <span>{selectedMemory.source}</span>
+          </article>
+          <div className="action-grid">
+            <button><Edit3 size={16} /> Edit</button>
+            <button><Trash2 size={16} /> Forget</button>
+          </div>
+        </Detail>
+      )}
+
+      {screen === "autobiography" && (
+        <Detail title="Autobiography" eyebrow="Preview" onBack={() => go("walk", "walk")}>
+          <article className="quiet-panel">
+            <Pill tone="olive">Day 90 preview</Pill>
+            <h2>The story Sayved is learning with you</h2>
+            <p>You are becoming someone who pauses before panic, asks for wisdom before speed, and returns to prayer when pressure tries to become your identity.</p>
+          </article>
+        </Detail>
+      )}
+
+      {screen === "echo" && (
+        <Detail title="Echo Capture" eyebrow="Sunday sermon" onBack={() => go("walk", "walk")}>
+          <article className="capture-card">
+            <Mic size={30} />
+            <h2>Face-down capture</h2>
+            <p>Audio stays local for MVP unless explicit consent and legal church context exist.</p>
+            <button className="primary-button"><Pause size={16} /> End Capture</button>
+          </article>
+          <button className="secondary-button" onClick={() => go("rhythm", "walk")}>Open Seven-Day Rhythm</button>
+        </Detail>
+      )}
+
+      {screen === "rhythm" && (
+        <Detail title="Echo Rhythm" eyebrow="Monday to Saturday" onBack={() => go("walk", "walk")}>
+          {["Monday anchor verse", "Tuesday memory thread", "Wednesday practice", "Thursday deeper reflection", "Friday examen", "Saturday preparation"].map((day) => (
+            <div className="list-row" key={day}><Check size={16} /><span>{day}</span></div>
+          ))}
+        </Detail>
+      )}
+
+      {screen === "settings" && (
+        <Detail title="Settings / Legal" eyebrow="Privacy controls" onBack={() => go("walk", "walk")}>
+          {["Account", "Preferred teacher", "Notification rhythm", "Privacy controls", "Export data", "Delete data", "AI disclosure", "Terms and Privacy Policy", "Takedown / teacher objection policy", "About Sayved"].map((item) => (
+            <div className="list-row" key={item}><Settings size={16} /><span>{item}</span></div>
+          ))}
+        </Detail>
+      )}
+
+      {screen === "bible" && (
+        <Detail title="Bible Reader" eyebrow="Search" onBack={() => go("walk", "walk")}>
+          <div className="search-box"><Search size={17} /><span>Search Scripture</span></div>
+          <InfoBlock icon={<BookOpen size={17} />} title="Psalm 119:105" text={scripture.text} />
+        </Detail>
+      )}
+
+      {screen === "recovery" && (
+        <Detail title="Recovery Contact" eyebrow="Memory recovery" onBack={() => go("memory", "walk")}>
+          <InfoBlock icon={<LockKeyhole size={17} />} title="Two-person recovery" text="A trusted human can hold recovery access without seeing your Memory." />
+          <button className="primary-button">Add Contact</button>
+        </Detail>
+      )}
+
+      {screen === "dashboard" && (
+        <Detail title="Pastor Dashboard" eyebrow="Preview" onBack={() => go("walk", "walk")}>
+          <InfoBlock icon={<Radio size={17} />} title="Echo for churches" text="Future church dashboard for sermon capture, rhythm prompts, and congregation-safe insights." />
+        </Detail>
+      )}
+    </Shell>
+  );
+}
+
+function Shell({ children, hideNav = false, activeTab = "talk", onTab = () => {} }) {
+  return (
+    <div className="app-container">
+      <main className="phone-viewport">
+        <div className="ambient-photo" />
+        <div className="screen-wrapper">{children}</div>
+        {!hideNav && (
+          <nav className="bottom-nav" aria-label="Primary">
+            {tabs.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button key={item.id} className={activeTab === item.id ? "active" : ""} onClick={() => onTab(item.id)}>
+                  <Icon size={20} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        )}
+      </main>
     </div>
   );
 }
+
+function Detail({ title, eyebrow, onBack, children }) {
+  return (
+    <section className="screen-content">
+      <TopBar title={title} eyebrow={eyebrow} onBack={onBack} />
+      {children}
+    </section>
+  );
+}
+
+function Composer({ value, onChange, onSend }) {
+  return (
+    <div className="composer">
+      <IconButton label="Voice">
+        <Mic size={18} />
+      </IconButton>
+      <input value={value} onChange={(event) => onChange(event.target.value)} placeholder="Tell Sayved what is on your heart..." />
+      <IconButton label="Send" onClick={onSend} tone="send">
+        <Send size={18} />
+      </IconButton>
+    </div>
+  );
+}
+
+function SectionTitle({ title, action }) {
+  return (
+    <div className="section-title">
+      <h2>{title}</h2>
+      {action && <span>{action}</span>}
+    </div>
+  );
+}
+
+function InfoBlock({ icon, title, text }) {
+  return (
+    <article className="info-block">
+      <div>{icon}</div>
+      <section>
+        <h3>{title}</h3>
+        <p>{text}</p>
+      </section>
+    </article>
+  );
+}
+
+function ToolButton({ icon, title, text, onClick }) {
+  return (
+    <button className="tool-button" onClick={onClick}>
+      {icon}
+      <strong>{title}</strong>
+      <span>{text}</span>
+    </button>
+  );
+}
+
+function WellItem({ icon, title, text, onClick }) {
+  return (
+    <button className="well-item" onClick={onClick}>
+      <div>{icon}</div>
+      <section>
+        <h3>{title}</h3>
+        <p>{text}</p>
+      </section>
+    </button>
+  );
+}
+
+function routeFromMap(item, go) {
+  const routes = {
+    "Onboarding / Privacy Promise": "talk",
+    "Talk / Director Conversation": "talk",
+    "Source Switcher / Composer": "talk",
+    "Scripture / References": "scripture",
+    "Teacher Discovery": "follow",
+    "Teacher Profile": "teacher",
+    "Official Source Player": "source",
+    "The Well": "well",
+    "Today's Devotion": "devotion",
+    "Memory / My Walk": "memory",
+    "Memory Detail / Edit / Forget": "memory-detail",
+    "Crisis Hand-Off": "crisis",
+    "Settings / Legal": "settings",
+    "Council Builder": "council",
+    "Council Session": "council-session",
+    "Echo Sermon Capture": "echo",
+    "Echo Seven-Day Rhythm": "rhythm",
+    "Spiritual Autobiography Preview": "autobiography",
+    "Teacher Request Confirmation": "request",
+    "Compare Teachings": "compare",
+    "Disputation": "disputation",
+    "Bible Reader / Search": "bible",
+    "Recovery Contact Setup": "recovery",
+    "Pastor Dashboard Preview": "dashboard",
+  };
+  const next = routes[item] || "walk";
+  const tab = ["follow", "teacher", "source", "request", "council"].includes(next) ? "follow" : ["talk", "scripture", "crisis", "compare", "disputation", "council-session"].includes(next) ? "talk" : "walk";
+  go(next, tab);
+}
+
+export default App;
