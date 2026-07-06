@@ -2085,13 +2085,10 @@ function App() {
               <AlertTriangle size={14} /> Disputation
             </button>
           </div>
-
-          <Composer
-            value={composer}
-            onChange={setComposer}
-            onSend={handleSend}
-          />
         </section>
+      )}
+      {screen === "talk" && (
+        <Composer value={composer} onChange={setComposer} onSend={handleSend} />
       )}
 
       {/* 4. Scripture / References Screen */}
